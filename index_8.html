@@ -1,0 +1,3713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PVPX — Compositor de Grupos · Albion Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<!-- Solo se usan si completás FIREBASE_CONFIG dentro del script de esta
+     página, para la sincronización en vivo con el bot de Discord (carpeta
+     discord-bot/, ver su README.md) — si no lo completás, esta parte de la
+     invitación simplemente no aparece y el resto de la herramienta sigue
+     funcionando igual. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-database-compat.min.js" defer></script>
+<style>
+  :root{
+    --bg:#0a0a0a;
+    --bg-alt:#131313;
+    --panel:#161616;
+    --panel-2:#1d1d1d;
+    --border:#2a2a2a;
+    --red:#c8102e;
+    --red-bright:#ff2d43;
+    --red-dim:#5c0f18;
+    --white:#f4f4f4;
+    --grey:#9a9a9a;
+    --grey-dim:#666;
+    --radius:10px;
+    --header-grad-1:#0d0d0d;
+    --header-grad-2:#0a0a0a;
+    --shadow-a:rgba(0,0,0,.55);
+  }
+  [data-theme="light"]{
+    --bg:#f6f5f3;
+    --bg-alt:#ffffff;
+    --panel:#ffffff;
+    --panel-2:#f0eeeb;
+    --border:#e0ddd7;
+    --red:#c8102e;
+    --red-bright:#e0122f;
+    --red-dim:#f6d3d8;
+    --white:#181614;
+    --grey:#5a5650;
+    --grey-dim:#8a857c;
+    --header-grad-1:#ffffff;
+    --header-grad-2:#f6f5f3;
+    --shadow-a:rgba(0,0,0,.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(200,16,46,.10), transparent 45%),
+      radial-gradient(circle at 85% 10%, rgba(200,16,46,.07), transparent 40%),
+      var(--bg);
+    color:var(--white);
+    font-family:'Rajdhani',sans-serif;
+    min-height:100vh;
+    padding-bottom:60px;
+    transition:background .2s,color .2s;
+  }
+  h1,h2,h3,.brand{font-family:'Cinzel',serif;}
+  ::selection{background:var(--red);color:#fff;}
+
+  /* ---------- Header ---------- */
+  header.top{
+    background:linear-gradient(180deg, var(--header-grad-1) 0%, var(--header-grad-2) 100%);
+    border-bottom:3px solid transparent;
+    border-image:linear-gradient(90deg, transparent, var(--red-bright) 20%, var(--red-bright) 80%, transparent) 1;
+    padding:20px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    position:sticky;
+    top:0;
+    z-index:50;
+    box-shadow:0 4px 22px var(--shadow-a);
+  }
+  .brand-block{display:flex;align-items:center;gap:18px;}
+  .crest{
+    width:64px;height:64px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #2a0006, #000);
+    border:3px solid var(--red);
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px;
+    box-shadow:0 0 0 4px color-mix(in srgb, var(--red) 18%, transparent), 0 0 22px rgba(200,16,46,.65) inset, 0 0 18px rgba(200,16,46,.5);
+    flex-shrink:0;
+  }
+  .brand-titles h1{
+    margin:0;font-size:30px;letter-spacing:3px;color:var(--white);
+    font-weight:900;text-transform:uppercase;
+    text-shadow:0 0 22px rgba(200,16,46,.65), 0 2px 0 rgba(0,0,0,.4);
+  }
+  .brand-titles .sub{font-size:12px;color:var(--grey);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;}
+  button, .btn{
+    font-family:'Rajdhani',sans-serif;
+    font-weight:600;
+    letter-spacing:.4px;
+    cursor:pointer;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--white);
+    padding:9px 14px;
+    font-size:13.5px;
+    transition:.15s ease;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  button:hover{border-color:var(--red);background:var(--panel-2);}
+  button:active{transform:scale(.97);}
+  button.primary{background:var(--red);border-color:var(--red);color:#fff;}
+  button.primary:hover{background:var(--red-bright);border-color:var(--red-bright);}
+  button.ghost{background:transparent;}
+  button.small{padding:5px 9px;font-size:12px;border-radius:6px;}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+  input[type=file]{display:none;}
+
+  /* ---------- Menú unificado de modalidad (Composición / Balance) ---------- */
+  .mode-bar{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    padding:22px 28px 0;
+  }
+  .mode-menu{
+    display:inline-flex;
+    gap:5px;
+    background:linear-gradient(165deg, var(--panel-2), var(--panel));
+    border:1px solid var(--border);
+    border-radius:34px;
+    padding:6px;
+    flex-wrap:wrap;
+    box-shadow:0 4px 16px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.03);
+  }
+  .mode-item{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:11px 24px;
+    border-radius:28px;
+    border:none;
+    background:transparent;
+    color:var(--grey);
+    font-family:'Cinzel',serif;
+    font-weight:800;
+    font-size:14.5px;
+    letter-spacing:.6px;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:.18s;
+  }
+  .mode-item span:first-child{font-size:17px;}
+  .mode-item:hover:not(.active){background:var(--panel-2);color:var(--white);}
+  .mode-item.active{
+    background:linear-gradient(120deg, var(--red-bright), var(--red));
+    color:#fff;
+    box-shadow:0 4px 16px rgba(200,16,46,.5), inset 0 1px 0 rgba(255,255,255,.25);
+    transform:translateY(-1px);
+  }
+  .mode-desc{font-size:12.5px;color:var(--grey);font-style:italic;padding-left:6px;}
+
+  /* Sub-menú dentro de la pestaña "Composición" para elegir ZVZ / Grupales /
+     Estática — más chico que el menú principal para marcar que es un
+     selector secundario dentro de la misma pestaña. */
+  .submode-menu{
+    display:inline-flex;
+    gap:4px;
+    background:var(--bg-alt);
+    border:1px solid var(--border);
+    border-radius:28px;
+    padding:5px;
+    flex-wrap:wrap;
+    margin-left:2px;
+    box-shadow:inset 0 1px 4px rgba(0,0,0,.25);
+  }
+  .submode-item{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:8px 18px;
+    border-radius:22px;
+    border:none;
+    background:transparent;
+    color:var(--grey);
+    font-family:'Rajdhani',sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    letter-spacing:.3px;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .submode-item:hover:not(.active){background:var(--panel-2);color:var(--white);}
+  .submode-item.active{
+    background:linear-gradient(120deg, var(--red-bright), var(--red));
+    color:#fff;
+    box-shadow:0 3px 10px rgba(200,16,46,.4);
+  }
+
+  main{padding:18px 28px 40px;}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:22px;
+  }
+
+  /* ---------- Summary strip ---------- */
+  .summary-strip{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:18px;
+  }
+  .stat{
+    background:var(--bg-alt);
+    border:1px solid var(--border);
+    border-left:3px solid var(--red);
+    border-radius:8px;
+    padding:8px 14px;
+    font-size:13px;
+    color:var(--grey);
+    min-width:120px;
+  }
+  .stat b{display:block;color:var(--white);font-size:18px;font-family:'Cinzel',serif;}
+
+  /* ---------- Group tabs (ZVZ) ---------- */
+  .group-bar{
+    display:flex;align-items:center;gap:6px;margin-bottom:18px;flex-wrap:wrap;
+    background:linear-gradient(165deg, var(--panel-2), var(--panel));
+    border:1px solid var(--border);border-radius:26px;padding:6px;
+    box-shadow:0 3px 12px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.03);
+  }
+  .group-tab{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:8px 14px 8px 20px;border-radius:20px;border:none;
+    background:transparent;color:var(--grey);font-weight:800;font-size:13.5px;cursor:pointer;
+    letter-spacing:.4px;transition:.16s;font-family:'Rajdhani',sans-serif;
+  }
+  .group-tab:hover:not(.active){background:var(--panel-2);color:var(--white);}
+  .group-tab.active{
+    background:linear-gradient(120deg, var(--red-bright), var(--red));
+    border-color:var(--red);color:#fff;
+    box-shadow:0 4px 14px rgba(200,16,46,.45), inset 0 1px 0 rgba(255,255,255,.2);
+    transform:translateY(-1px);
+  }
+  .group-tab .count{opacity:.8;font-size:11px;}
+  .tab-rename-btn{
+    background:rgba(255,255,255,.08);border:none;color:inherit;opacity:.75;cursor:pointer;
+    font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;transition:.14s;
+  }
+  .tab-rename-btn:hover{opacity:1;background:rgba(255,255,255,.22);}
+
+  /* ---------- Gear picker (equipment editing) ---------- */
+  .doll-slot.editable{cursor:pointer;position:relative;}
+  .doll-slot.editable .doll-icon-box{transition:.15s;}
+  .doll-slot.editable:hover .doll-icon-box{
+    border-color:var(--red-bright);
+    box-shadow:0 0 0 2px color-mix(in srgb, var(--red-bright) 40%, transparent), 0 0 14px rgba(200,16,46,.4);
+  }
+  .doll-edit-hint{
+    position:absolute;top:2px;right:2px;
+    width:18px;height:18px;border-radius:50%;
+    background:var(--red-bright);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;opacity:0;transition:.15s;
+    box-shadow:0 2px 6px rgba(0,0,0,.4);
+  }
+  .doll-slot.editable:hover .doll-edit-hint{opacity:1;}
+  .gear-picker-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .gear-picker-grid{
+    display:grid;grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:10px;
+  }
+  .gear-picker-item{
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    padding:12px 8px;border-radius:12px;border:1px solid var(--border);
+    background:var(--bg-alt);cursor:pointer;transition:.15s;
+    font-family:'Rajdhani',sans-serif;
+  }
+  .gear-picker-item:hover{border-color:var(--red-bright);background:var(--panel-2);transform:translateY(-2px);}
+  .gear-picker-item.active{
+    border-color:var(--red-bright);
+    background:color-mix(in srgb, var(--red-bright) 14%, var(--bg-alt));
+    box-shadow:0 0 0 1px var(--red-bright), 0 4px 14px rgba(200,16,46,.3);
+  }
+  .gear-picker-icon{
+    width:56px;height:56px;border-radius:10px;background:var(--panel);
+    display:flex;align-items:center;justify-content:center;font-size:26px;
+    border:1px solid var(--border);overflow:hidden;
+  }
+  .gear-picker-icon img{width:100%;height:100%;object-fit:contain;}
+  .gear-picker-name{font-size:12px;color:var(--white);text-align:center;font-weight:600;line-height:1.25;}
+  .gear-picker-group-title{
+    font-family:'Cinzel',serif;font-weight:800;font-size:12.5px;color:var(--white);
+    text-transform:uppercase;letter-spacing:.6px;
+    margin:18px 0 8px;padding-left:10px;
+    border-left:3px solid var(--red-bright);
+  }
+  .gear-picker-group-title:first-child{margin-top:0;}
+
+  /* ---------- Roster grid ---------- */
+  .roster-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .roster-head h2{margin:0;font-size:18px;color:var(--white);}
+  .fill-bar-wrap{flex:1;min-width:160px;max-width:320px;height:8px;background:#000;border-radius:5px;overflow:hidden;border:1px solid var(--border);}
+  .fill-bar{height:100%;background:linear-gradient(90deg,var(--red-dim),var(--red-bright));transition:.25s;}
+  .quick-controls{display:flex;gap:6px;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+    gap:14px;
+  }
+  .slot-card{
+    --accent:var(--red);
+    background:var(--bg-alt);
+    background:linear-gradient(165deg, color-mix(in srgb, var(--accent) 20%, var(--bg-alt)) 0%, var(--bg-alt) 58%);
+    border:1px solid var(--border);
+    border-top:3px solid var(--accent);
+    border-radius:12px;
+    padding:15px 13px 13px;
+    position:relative;
+    overflow:hidden;
+    transition:.15s;
+    box-shadow:0 2px 10px rgba(0,0,0,.18);
+  }
+  .slot-card:hover{border-color:var(--accent);box-shadow:0 6px 20px -3px color-mix(in srgb, var(--accent) 60%, transparent);}
+  .slot-card:hover{border-top-color:var(--accent);}
+  /* Marca de agua del ícono de rol — detalle de diseño extra por tarjeta */
+  .slot-card::after{
+    content:attr(data-role-icon);
+    position:absolute;right:-10px;bottom:-20px;
+    font-size:76px;line-height:1;
+    opacity:.07;
+    pointer-events:none;
+    filter:grayscale(.4);
+  }
+
+  /* Cinta de rol — pieza clave para "resaltar" cada tarjeta con el color de su rol */
+  .role-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--accent);
+    color:#050505;
+    font-weight:800;
+    font-size:12.5px;
+    letter-spacing:.3px;
+    padding:4px 11px 4px 9px;
+    border-radius:20px;
+    margin:0 0 11px 0;
+    box-shadow:0 1px 4px rgba(0,0,0,.35);
+    font-family:'Rajdhani',sans-serif;
+    position:relative;
+    z-index:1;
+  }
+
+  /* Muñeco de equipo (paperdoll): imita la disposición de Albion al equipar
+     al personaje — arma / casco / capa arriba, pecho / off-hand en medio,
+     botas abajo. Cada casilla trae ícono grande + nombre del ítem en
+     español debajo, para que se lea de un vistazo qué lleva puesto. */
+  .paperdoll{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(3,auto);
+    gap:9px;
+    margin-bottom:12px;
+    position:relative;
+    z-index:1;
+  }
+  .doll-slot{display:flex;flex-direction:column;align-items:stretch;gap:4px;}
+  .doll-icon-box{
+    width:100%;aspect-ratio:1;
+    border-radius:9px;
+    background:#000;
+    border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;position:relative;
+  }
+  .doll-slot.filled .doll-icon-box{
+    border-color:var(--accent);
+    box-shadow:0 0 0 1px rgba(0,0,0,.45) inset, 0 0 11px -1px color-mix(in srgb, var(--accent) 75%, transparent);
+    background:radial-gradient(circle at 50% 40%, #1a1a1a, #000);
+  }
+  .doll-slot.empty .doll-icon-box{opacity:.32;border-style:dashed;}
+  .doll-slot.na .doll-icon-box{opacity:.18;border-style:dashed;}
+  .doll-icon-box img{width:80%;height:80%;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.7));}
+  .doll-icon-box .fallback{font-size:28px;}
+  .doll-icon-box .tier-badge{
+    position:absolute;top:-1px;right:-1px;
+    background:var(--accent);color:#050505;
+    font-size:8px;font-weight:800;letter-spacing:.4px;
+    padding:1px 4px;border-radius:0 7px 0 7px;
+    font-family:'Rajdhani',sans-serif;
+  }
+  .doll-label{display:flex;flex-direction:column;align-items:center;text-align:center;line-height:1.2;padding:0 1px;}
+  .doll-tag{
+    font-size:8.5px;font-weight:800;letter-spacing:.4px;
+    color:var(--grey-dim);text-transform:uppercase;
+  }
+  .doll-name{
+    font-size:11px;font-weight:600;color:var(--grey);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow:hidden;word-break:break-word;
+  }
+  .food-slot{grid-column:1;grid-row:1;}
+  .weapon-slot{grid-column:1;grid-row:2;}
+  .helm-slot{grid-column:2;grid-row:1;}
+  .cape-slot{grid-column:3;grid-row:1;}
+  .chest-slot{grid-column:2;grid-row:2;}
+  .off-slot{grid-column:3;grid-row:2;}
+  .boots-slot{grid-column:2;grid-row:3;}
+
+  .role-select, .weapon-select{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--border);
+    color:var(--white);
+    padding:6px 7px;
+    border-radius:6px;
+    font-family:'Rajdhani',sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    outline:none;
+    position:relative;
+    z-index:1;
+  }
+  .role-select{color:var(--red-bright);text-overflow:ellipsis;font-weight:700;}
+  .role-select:focus, .weapon-select:focus, .player-input:focus{border-color:var(--accent);}
+  .slot-card .selects{display:flex;flex-direction:column;gap:6px;min-width:0;position:relative;z-index:1;}
+  .player-input{
+    margin-top:10px;
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--border);
+    color:var(--white);
+    padding:8px 10px;
+    border-radius:6px;
+    font-size:14.5px;
+    outline:none;
+    position:relative;
+    z-index:1;
+  }
+  .player-input::placeholder{color:var(--grey-dim);}
+  .remove-slot{
+    position:absolute;top:6px;right:6px;z-index:2;
+    width:20px;height:20px;border-radius:50%;
+    background:transparent;border:1px solid var(--border);
+    color:var(--grey);font-size:12px;line-height:1;
+    display:flex;align-items:center;justify-content:center;padding:0;
+  }
+  .remove-slot:hover{background:var(--red);border-color:var(--red);color:#fff;}
+
+  .add-slot-card{
+    border:1.5px dashed var(--border);
+    border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--grey);
+    font-weight:700;
+    cursor:pointer;
+    min-height:96px;
+    background:transparent;
+    font-size:13px;
+  }
+  .add-slot-card:hover{border-color:var(--red);color:var(--red-bright);}
+  .add-slot-card:disabled{opacity:.3;cursor:not-allowed;}
+
+  .empty-msg{color:var(--grey);font-size:13px;padding:20px;text-align:center;border:1px dashed var(--border);border-radius:10px;}
+
+  /* ---------- Role legend ---------- */
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;padding-top:16px;border-top:1px solid var(--border);}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--grey);}
+  .legend-item .dot{width:10px;height:10px;border-radius:3px;background:var(--red);}
+
+  /* ---------- Pestaña Solitario (PvE / PvP) ---------- */
+  .solo-note{
+    display:flex;align-items:center;gap:8px;
+    background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--red-bright);
+    border-radius:8px;padding:10px 14px;margin-bottom:18px;
+    font-size:12.5px;color:var(--grey);line-height:1.5;
+  }
+  .solo-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+  }
+  .solo-card{
+    --accent:var(--red);
+    width:100%;
+    max-width:560px;
+    background:var(--bg-alt);
+    background:linear-gradient(165deg, color-mix(in srgb, var(--accent) 20%, var(--bg-alt)) 0%, var(--bg-alt) 58%);
+    border:1px solid var(--border);
+    border-top:3px solid var(--accent);
+    border-radius:12px;
+    padding:15px 13px 13px;
+    position:relative;
+    transition:.15s;
+    box-shadow:0 2px 10px rgba(0,0,0,.18);
+  }
+  .solo-card:hover{border-color:var(--accent);box-shadow:0 6px 20px -3px color-mix(in srgb, var(--accent) 60%, transparent);}
+  .solo-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:11px;}
+  .solo-card-title{
+    display:flex;align-items:center;gap:8px;
+    font-family:'Cinzel',serif;font-weight:800;font-size:14.5px;color:var(--white);
+  }
+  .solo-card-title span:first-child{font-size:19px;}
+  .solo-tag{
+    flex-shrink:0;
+    background:var(--accent);color:#050505;
+    font-weight:800;font-size:10.5px;letter-spacing:.3px;text-transform:uppercase;
+    padding:4px 10px;border-radius:20px;
+    box-shadow:0 1px 4px rgba(0,0,0,.35);
+    font-family:'Rajdhani',sans-serif;
+    white-space:nowrap;
+  }
+  .solo-desc{
+    font-size:12.5px;color:var(--grey);line-height:1.5;
+    margin:2px 0 14px;
+    position:relative;z-index:1;
+  }
+  .solo-stats{display:flex;flex-direction:column;gap:7px;position:relative;z-index:1;}
+  .solo-stat-row{display:flex;align-items:center;gap:9px;}
+  .solo-stat-label{
+    width:96px;flex-shrink:0;
+    font-size:11px;font-weight:700;color:var(--grey);
+    text-transform:uppercase;letter-spacing:.3px;
+  }
+  .solo-stat-track{
+    flex:1;height:9px;border-radius:5px;overflow:hidden;
+    background:color-mix(in srgb, var(--accent) 12%, var(--bg-alt));
+    border:1px solid var(--border);
+  }
+  .solo-stat-fill{display:block;height:100%;border-radius:5px;transition:.25s;}
+  .solo-stat-value{
+    width:32px;flex-shrink:0;text-align:right;
+    font-size:11.5px;font-weight:800;color:var(--white);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- Pestaña de Balance de jugadores ---------- */
+  .balance-panel .summary-strip{margin-bottom:20px;}
+  .balance-stat-total{border-left-color:#2e9e5b;}
+  .balance-stat-total b{color:#2e9e5b;}
+
+  .balance-toolbar{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border);
+  }
+  .balance-toolbar .player-input{margin-top:0;flex:1;min-width:220px;max-width:300px;font-size:15px;}
+
+  .balance-move-card{
+    background:linear-gradient(165deg, color-mix(in srgb, var(--red) 10%, var(--bg-alt)) 0%, var(--bg-alt) 60%);
+    border:1px solid var(--border);border-radius:12px;
+    padding:16px;margin-bottom:22px;
+  }
+  .balance-move-title{
+    font-family:'Cinzel',serif;font-weight:700;font-size:15px;color:var(--white);
+    margin-bottom:12px;
+  }
+  .balance-move-form{display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
+  .balance-move-form select, .balance-move-form input{
+    background:var(--panel);border:1px solid var(--border);color:var(--white);
+    padding:9px 11px;border-radius:7px;font-family:'Rajdhani',sans-serif;font-size:14.5px;outline:none;
+  }
+  .balance-move-form select{min-width:180px;}
+  .balance-move-form input[type=number]{width:130px;font-family:'Cinzel',serif;font-weight:700;}
+  .balance-move-form input[type=text]{flex:1;min-width:180px;}
+  .balance-move-form select:focus, .balance-move-form input:focus{border-color:var(--red);}
+
+  .balance-table{border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .balance-row{
+    display:grid;grid-template-columns:2.2fr 1.1fr 90px 160px;align-items:center;
+    gap:10px;padding:13px 16px;border-bottom:1px solid var(--border);
+    transition:.12s;
+  }
+  .balance-row:not(.balance-row-head):hover{background:var(--bg-alt);}
+  .balance-row:last-child{border-bottom:none;}
+  .balance-row-head{
+    background:var(--bg-alt);color:var(--grey-dim);font-size:11.5px;font-weight:800;
+    text-transform:uppercase;letter-spacing:.5px;
+  }
+  .balance-name-cell{display:flex;align-items:center;gap:10px;min-width:0;}
+  .balance-avatar{
+    width:32px;height:32px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    color:#050505;font-family:'Cinzel',serif;font-weight:800;font-size:14px;
+    box-shadow:0 2px 6px rgba(0,0,0,.35);
+  }
+  .balance-avatar.large{width:46px;height:46px;font-size:19px;}
+  .balance-name{font-weight:700;color:var(--white);font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .balance-amount{font-family:'Cinzel',serif;font-weight:800;font-size:17px;color:var(--grey);}
+  .balance-amount.positive{color:#2e9e5b;}
+  .balance-amount.negative{color:var(--red-bright);}
+  .balance-count{font-size:13px;color:var(--grey-dim);}
+  .balance-actions{display:flex;gap:6px;justify-content:flex-end;}
+
+  /* ---------- Historial de movimientos (modal con diseño) ---------- */
+  .bal-hist-summary{
+    display:flex;align-items:center;gap:14px;
+    background:var(--bg-alt);border:1px solid var(--border);border-radius:12px;
+    padding:16px;margin-bottom:18px;
+  }
+  .bal-hist-summary-name{font-family:'Cinzel',serif;font-weight:700;font-size:17px;color:var(--white);}
+  .bal-hist-summary-amount{font-family:'Cinzel',serif;font-weight:800;font-size:22px;color:var(--grey);margin-top:2px;}
+  .bal-hist-summary-amount.positive{color:#2e9e5b;}
+  .bal-hist-summary-amount.negative{color:var(--red-bright);}
+  .bal-hist-list{display:flex;flex-direction:column;gap:8px;}
+  .bal-hist-item{
+    display:flex;justify-content:space-between;align-items:center;gap:14px;
+    background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--grey-dim);
+    border-radius:9px;padding:11px 14px;
+  }
+  .bal-hist-item.positive{border-left-color:#2e9e5b;}
+  .bal-hist-item.negative{border-left-color:var(--red-bright);}
+  .bal-hist-item-amount{font-family:'Cinzel',serif;font-weight:800;font-size:16px;color:var(--grey);flex-shrink:0;}
+  .bal-hist-item.positive .bal-hist-item-amount{color:#2e9e5b;}
+  .bal-hist-item.negative .bal-hist-item-amount{color:var(--red-bright);}
+  .bal-hist-item-meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:0;text-align:right;}
+  .bal-hist-date{font-size:12px;color:var(--grey-dim);}
+  .bal-hist-note{font-size:13px;color:var(--grey);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px;}
+
+  footer{
+    text-align:center;color:var(--grey-dim);font-size:11.5px;padding:24px;
+  }
+
+  /* Modal for text export */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.75);
+    display:none;align-items:center;justify-content:center;z-index:100;padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal{
+    background:var(--panel);border:1px solid var(--red);border-radius:12px;
+    max-width:640px;width:100%;max-height:80vh;display:flex;flex-direction:column;
+    box-shadow:0 0 40px rgba(200,16,46,.3);
+  }
+  .modal.wide{max-width:820px;}
+  .modal-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .modal-head h3{margin:0;font-size:16px;}
+  .modal-body{padding:16px 18px;overflow:auto;}
+  .modal-body textarea{
+    width:100%;min-height:340px;background:#0a0a0a;border:1px solid var(--border);
+    color:#f0f0f0;border-radius:8px;padding:12px;font-family:monospace;font-size:12.5px;
+    resize:vertical;
+  }
+  .modal-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+
+  /* ---------- Guía (modal con contenido HTML, títulos marcados) ---------- */
+  .guide-content{font-size:13.5px;line-height:1.55;color:var(--grey);}
+  .guide-content h4{
+    font-family:'Cinzel',serif;color:var(--red-bright);font-size:15.5px;
+    text-transform:uppercase;letter-spacing:1px;
+    margin:22px 0 12px;padding-bottom:7px;border-bottom:2px solid var(--red);
+  }
+  .guide-content h4:first-child{margin-top:0;}
+  .guide-content b{color:var(--white);}
+
+  /* ---------- Invitación para Discord (imagen + texto) ---------- */
+  .invite-form{display:flex;flex-direction:column;gap:12px;margin-bottom:6px;}
+  .invite-label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--grey);font-weight:600;letter-spacing:.2px;}
+  .invite-label input{
+    background:#0a0a0a;border:1px solid var(--border);color:#f0f0f0;
+    border-radius:8px;padding:9px 12px;font-family:'Rajdhani',sans-serif;font-size:14px;
+  }
+  .invite-label input:focus{outline:none;border-color:var(--red-bright);}
+  .invite-datetime-wrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .invite-datetime-wrap input[type=date]{flex:1 1 150px;min-width:150px;}
+  .invite-datetime-wrap select{
+    background:#0a0a0a;border:1px solid var(--border);color:#f0f0f0;
+    border-radius:8px;padding:9px 8px;font-family:'Rajdhani',sans-serif;font-size:14px;
+  }
+  .invite-datetime-wrap select:focus{outline:none;border-color:var(--red-bright);}
+  .invite-time-sep{color:var(--grey);font-weight:700;}
+  .invite-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;}
+  #invitePreviewWrap img{width:100%;border-radius:10px;border:1px solid var(--border);display:block;margin-bottom:12px;}
+
+  /* ---------- Sincronización en vivo con Discord ---------- */
+  .live-sync-box{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);}
+  .live-sync-hint{font-size:12.5px;color:var(--grey);line-height:1.5;margin:0;}
+  .live-sync-hint code{background:var(--panel-2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:11.5px;}
+  .live-sync-head{margin-bottom:10px;font-size:14px;}
+  .live-sync-status{font-size:12.5px;color:var(--grey);margin-top:8px;min-height:16px;}
+  .live-sync-board{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+  .live-sync-role-row{
+    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+    background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px;
+  }
+  .live-sync-role-tag{font-weight:700;color:var(--white);white-space:nowrap;}
+  .live-sync-role-names{color:var(--grey);}
+  .guide-roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;}
+  .guide-role-item{
+    --accent:var(--red);
+    background:var(--bg-alt);border-left:3px solid var(--accent);border-radius:8px;
+    padding:10px 12px;
+  }
+  .guide-role-head{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--white);font-size:14px;margin-bottom:5px;}
+  .guide-role-desc{margin-bottom:6px;}
+  .guide-role-armor{font-size:12.5px;color:var(--grey-dim);}
+  .guide-mode-item{
+    background:var(--bg-alt);border:1px solid var(--border);border-radius:8px;
+    padding:10px 12px;margin-bottom:8px;
+  }
+  .guide-note{background:var(--bg-alt);border:1px dashed var(--border);border-radius:8px;padding:10px 12px;}
+
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+    background:var(--red);color:#fff;padding:10px 20px;border-radius:8px;
+    font-size:13.5px;font-weight:600;box-shadow:0 6px 22px rgba(0,0,0,.5);
+    opacity:0;pointer-events:none;transition:.25s;z-index:200;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+
+  @media (max-width:640px){
+    header.top{padding:14px;}
+    .mode-bar,main{padding-left:14px;padding-right:14px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand-block">
+    <div class="crest">⚔️</div>
+    <div class="brand-titles">
+      <h1 id="brandTitle">PVPX</h1>
+      <div class="sub">Compositor de Grupos · Albion Online</div>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button class="ghost small" id="btnTheme" title="Cambiar tema claro/oscuro">🌙 Oscuro</button>
+    <button class="ghost small" id="btnHelp" title="Guía de roles">❔ Guía</button>
+    <button class="ghost" id="btnCopy">📋 Copiar para Discord</button>
+    <button class="ghost" id="btnInvite" title="Genera una tarjeta de invitación con la build actual para pegar en Discord">🎉 Invitación</button>
+    <button class="ghost" id="btnExport">⬇ Exportar</button>
+    <button class="ghost" id="btnImportTrigger">⬆ Importar</button>
+    <input type="file" id="btnImport" accept="application/json">
+    <button class="primary" id="btnReset">🗑 Limpiar</button>
+  </div>
+</header>
+
+<nav class="mode-bar" id="modeBar"></nav>
+
+<main>
+  <div class="panel" id="panel"></div>
+</main>
+
+<footer>⚔ Herramienta interna de gremio · Íconos vía Albion Online Render Service · No es una herramienta oficial de Albion Online · Datos guardados solo en tu navegador/archivo exportado</footer>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox">
+    <div class="modal-head">
+      <h3 id="modalTitle">Exportar</h3>
+      <button class="small ghost" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <textarea id="modalText" readonly></textarea>
+      <div class="guide-content" id="modalGuide" style="display:none;"></div>
+    </div>
+    <div class="modal-foot" id="modalFoot">
+      <button class="primary" id="modalCopyBtn">Copiar al portapapeles</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==========================================================================
+   Compositor de Grupos — Albion Online
+   App de una sola página para armar composiciones de ZVZ (Estándar/Kite/Brawl),
+   Grupales y Estática, con equipo completo (arma, casco, pecho, botas, capa).
+   ========================================================================== */
+
+/* ---------------- Render service de Albion Online (íconos oficiales) -----
+   https://render.albiononline.com/v1/item/{UNIQUENAME}.png?quality=1
+   Si un ícono no carga (nombre no exacto / cambios de la API) se usa un
+   emoji de respaldo para que la tarjeta nunca se vea rota.
+---------------------------------------------------------------------------- */
+const TIER = 'T8';
+function iconUrl(suffix) {
+  if (!suffix) return null;
+  return `https://render.albiononline.com/v1/item/${TIER}_${suffix}.png?quality=1&size=80`;
+}
+
+/* ---------------- Catálogo de piezas de armadura (verificadas) ---------- */
+const HELM = {
+  SOLDIER: ['Casco de Soldado', 'HEAD_PLATE_SET1'],
+  KNIGHT: ['Casco de Caballero', 'HEAD_PLATE_SET2'],
+  GUARDIAN: ['Casco de Guardián', 'HEAD_PLATE_SET3'],
+  JUDICATOR: ['Casco Judicante', 'HEAD_PLATE_KEEPER'],
+  DEMON: ['Casco Demoníaco', 'HEAD_PLATE_HELL'],
+  GRAVEGUARD: ['Casco Guardatumbas', 'HEAD_PLATE_UNDEAD'],
+  VALOR: ['Casco del Valor', 'HEAD_PLATE_AVALON'],
+  DUSKWEAVER: ['Casco Tejeocaso', 'HEAD_PLATE_FEY'],
+  ROYAL_PLATE: ['Casco Real de Placa (Royal)', 'HEAD_PLATE_ROYAL'],
+  ASSASSIN: ['Capucha de Asesino', 'HEAD_LEATHER_SET3'],
+  HUNTER: ['Capucha de Cazador', 'HEAD_LEATHER_SET2'],
+  MERCENARY: ['Capucha de Mercenario', 'HEAD_LEATHER_SET1'],
+  STALKER: ['Capucha de Acechador', 'HEAD_LEATHER_MORGANA'],
+  SPECTER: ['Capucha Espectral (Specter)', 'HEAD_LEATHER_UNDEAD'],
+  TENACITY: ['Capucha de la Tenacidad', 'HEAD_LEATHER_AVALON'],
+  CLERIC: ['Capucha de Clérigo', 'HEAD_CLOTH_SET2'],
+  SCHOLAR: ['Capucha de Erudito', 'HEAD_CLOTH_SET1'],
+  MAGE: ['Capucha de Mago', 'HEAD_CLOTH_SET3'],
+  CULTIST: ['Capucha de Culto (Cultist)', 'HEAD_CLOTH_MORGANA'],
+  DRUID: ['Capucha Druida', 'HEAD_CLOTH_KEEPER'],
+  FIEND: ['Capucha Endemoniada (Fiend)', 'HEAD_CLOTH_HELL'],
+  PURITY: ['Capucha de la Pureza', 'HEAD_CLOTH_AVALON'],
+  ROYAL_CLOTH: ['Capucha Real de Tela (Royal)', 'HEAD_CLOTH_ROYAL'],
+  HELLION: ['Capucha Infernal', 'HEAD_LEATHER_HELL'],
+  MISTWALKER: ['Capucha Bruma', 'HEAD_LEATHER_FEY'],
+  ROYAL: ['Capucha Real', 'HEAD_LEATHER_ROYAL'],
+  FEYSCALE: ['Sombrero Escamas de Hada', 'HEAD_CLOTH_FEY'],
+};
+const CHEST = {
+  SOLDIER: ['Armadura de Soldado', 'ARMOR_PLATE_SET1'],
+  KNIGHT: ['Armadura de Caballero', 'ARMOR_PLATE_SET2'],
+  GUARDIAN: ['Armadura de Guardián', 'ARMOR_PLATE_SET3'],
+  JUDICATOR: ['Armadura Judicante', 'ARMOR_PLATE_KEEPER'],
+  GRAVEGUARD: ['Armadura Guardatumbas', 'ARMOR_PLATE_UNDEAD'],
+  VALOR: ['Armadura del Valor', 'ARMOR_PLATE_AVALON'],
+  ROYAL_PLATE: ['Armadura Real de Placa (Royal)', 'ARMOR_PLATE_ROYAL'],
+  STALKER: ['Chaqueta de Acechador', 'ARMOR_LEATHER_MORGANA'],
+  SPECTER: ['Chaqueta Espectral (Specter)', 'ARMOR_LEATHER_UNDEAD'],
+  TENACITY: ['Chaqueta de la Tenacidad', 'ARMOR_LEATHER_AVALON'],
+  MAGE: ['Túnica de Mago', 'ARMOR_CLOTH_SET3'],
+  CULTIST: ['Túnica de Culto (Cultist)', 'ARMOR_CLOTH_MORGANA'],
+  DRUID: ['Túnica Druida', 'ARMOR_CLOTH_KEEPER'],
+  FIEND: ['Túnica Endemoniada (Fiend)', 'ARMOR_CLOTH_HELL'],
+  PURITY: ['Túnica de la Pureza', 'ARMOR_CLOTH_AVALON'],
+  ROYAL_CLOTH: ['Túnica Real de Tela (Royal)', 'ARMOR_CLOTH_ROYAL'],
+  CLERIC: ['Túnica de Clérigo', 'ARMOR_CLOTH_SET2'],
+  SCHOLAR: ['Túnica de Erudito', 'ARMOR_CLOTH_SET1'],
+  DUSKWEAVER: ['Armadura Tejeocaso', 'ARMOR_PLATE_FEY'],
+  DEMON: ['Armadura Demoníaca', 'ARMOR_PLATE_HELL'],
+  ROYAL: ['Chaqueta Real', 'ARMOR_LEATHER_ROYAL'],
+  HELLION: ['Chaqueta Infernal', 'ARMOR_LEATHER_HELL'],
+  MERCENARY: ['Chaqueta de Mercenario', 'ARMOR_LEATHER_SET1'],
+  HUNTER: ['Chaqueta de Cazador', 'ARMOR_LEATHER_SET2'],
+  ASSASSIN: ['Chaqueta de Asesino', 'ARMOR_LEATHER_SET3'],
+  MISTWALKER: ['Chaqueta Bruma', 'ARMOR_LEATHER_FEY'],
+  FEYSCALE: ['Túnica Escamas de Hada', 'ARMOR_CLOTH_FEY'],
+};
+const BOOTS = {
+  SOLDIER: ['Botas de Soldado', 'SHOES_PLATE_SET1'],
+  KNIGHT: ['Botas de Caballero', 'SHOES_PLATE_SET2'],
+  GUARDIAN: ['Botas de Guardián', 'SHOES_PLATE_SET3'],
+  JUDICATOR: ['Botas Judicantes', 'SHOES_PLATE_KEEPER'],
+  DEMON: ['Botas Demoníacas', 'SHOES_PLATE_HELL'],
+  DUSKWEAVER: ['Botas Tejeocaso', 'SHOES_PLATE_FEY'],
+  ROYAL_PLATE: ['Botas Reales de Placa (Royal)', 'SHOES_PLATE_ROYAL'],
+  HELLION_BOOTS: ['Botas Infernales', 'SHOES_LEATHER_HELL'],
+  SPECTER: ['Botas Espectrales (Specter)', 'SHOES_LEATHER_UNDEAD'],
+  TENACITY: ['Botas de la Tenacidad', 'SHOES_LEATHER_AVALON'],
+  MISTWALKER: ['Botas Bruma', 'SHOES_LEATHER_FEY'],
+  MAGE: ['Sandalias de Mago', 'SHOES_CLOTH_SET3'],
+  CULTIST: ['Sandalias de Culto (Cultist)', 'SHOES_CLOTH_MORGANA'],
+  DRUID: ['Sandalias Druidas', 'SHOES_CLOTH_KEEPER'],
+  FIEND: ['Sandalias Endemoniadas (Fiend)', 'SHOES_CLOTH_HELL'],
+  PURITY: ['Sandalias de la Pureza', 'SHOES_CLOTH_AVALON'],
+  ROYAL_CLOTH: ['Sandalias Reales de Tela (Royal)', 'SHOES_CLOTH_ROYAL'],
+  MERCENARY: ['Botas de Mercenario', 'SHOES_LEATHER_SET1'],
+  HUNTER: ['Botas de Cazador', 'SHOES_LEATHER_SET2'],
+  ASSASSIN: ['Botas de Asesino', 'SHOES_LEATHER_SET3'],
+  STALKER: ['Botas de Acechador', 'SHOES_LEATHER_MORGANA'],
+  GRAVEGUARD: ['Botas Guardatumbas', 'SHOES_PLATE_UNDEAD'],
+  ROYAL: ['Zapatos Reales', 'SHOES_LEATHER_ROYAL'],
+  VALOR: ['Botas del Valor', 'SHOES_PLATE_AVALON'],
+  SCHOLAR: ['Sandalias de Erudito', 'SHOES_CLOTH_SET1'],
+  CLERIC: ['Sandalias de Clérigo', 'SHOES_CLOTH_SET2'],
+  FEYSCALE: ['Sandalias Escamas de Hada', 'SHOES_CLOTH_FEY'],
+};
+const CAPE = {
+  MARTLOCK: ['Capa de Martlock', 'CAPEITEM_FW_MARTLOCK'],
+  LYMHURST: ['Capa de Lymhurst', 'CAPEITEM_FW_LYMHURST'],
+  MORGANA: ['Capa de Morgana', 'CAPEITEM_MORGANA'],
+  CAERLEON: ['Capa de Caerleon', 'CAPEITEM_FW_CAERLEON'],
+  BRIDGEWATCH: ['Capa de Bridgewatch', 'CAPEITEM_FW_BRIDGEWATCH'],
+  FORTSTERLING: ['Capa de Fort Sterling', 'CAPEITEM_FW_FORTSTERLING'],
+  THETFORD: ['Capa de Thetford', 'CAPEITEM_FW_THETFORD'],
+  SMUGGLER: ['Capa de Contrabandista', 'CAPEITEM_SMUGGLER'],
+  BRECILIEN: ['Capa de Brecilien', 'CAPEITEM_FW_BRECILIEN'],
+  AVALON: ['Capa Avalonense', 'CAPEITEM_AVALON'],
+  UNDEAD: ['Capa No-muerta (Undead)', 'CAPEITEM_UNDEAD'],
+  KEEPER: ['Capa de Guardián (Keeper)', 'CAPEITEM_KEEPER'],
+  DEMON: ['Capa Demoníaca', 'CAPEITEM_DEMON'],
+  HERETIC: ['Capa Hereje (Heretic)', 'CAPEITEM_HERETIC'],
+  STARTER: ['Capa Simple', 'CAPE'],
+};
+/* Catálogo de piezas de off-hand usadas en las builds — centralizado para
+   poder ofrecerlas como opciones al editar el equipamiento de cualquier
+   jugador, sin importar qué off-hand traiga su build por defecto. */
+const OFF = {
+  SHIELD: ['Escudo', 'OFF_SHIELD'],
+  TORCH: ['Antorcha', 'OFF_TORCH'],
+  AEGIS: ['Égida Astral (Astral Aegis)', 'OFF_SHIELD_AVALON'],
+  SCEPTER: ['Cetro Sagrado (Sacred Scepter)', 'OFF_TALISMAN_AVALON'],
+  CENSER: ['Incensario Celestial (Celestial Censer)', 'OFF_CENSER_AVALON'],
+  EYE: ['Ojo de los Secretos (Eye of Secrets)', 'OFF_ORB_MORGANA'],
+  FACEBREAKER: ['Rompecaras (Facebreaker)', 'OFF_SPIKEDSHIELD_MORGANA'],
+  MISTCALLER: ['Bruma del Anciano (Mistcaller)', 'OFF_HORN_KEEPER'],
+  TAPROOT: ['Raíz Ancestral (Taproot)', 'OFF_TOTEM_KEEPER'],
+  MUISAK: ['Muisak', 'OFF_DEMONSKULL_HELL'],
+  LEERING: ['Bastón de Fisgoneo (Leering Cane)', 'OFF_JESTERCANE_HELL'],
+  CAITIFF: ['Escudo Infame (Caitiff Shield)', 'OFF_SHIELD_HELL'],
+  SARCOPHAGUS: ['Sarcófago (Sarcophagus)', 'OFF_TOWERSHIELD_UNDEAD'],
+  CRYPTCANDLE: ['Vela de Cripta (Cryptcandle)', 'OFF_LAMP_UNDEAD'],
+  BOOK: ['Diario de Rosalia (Book)', 'OFF_BOOK'],
+  SHIELD_CRYSTAL: ['Baluarte Inquebrantable (Unbreakable Ward)', 'OFF_SHIELD_CRYSTAL'],
+  TOME_CRYSTAL: ['Grimorio Atemporal (Timelocked Grimoire)', 'OFF_TOME_CRYSTAL'],
+  TORCH_CRYSTAL: ['Antorcha Azulflama (Blueflame Torch)', 'OFF_TORCH_CRYSTAL'],
+};
+
+/* ---------------- Agrupado de catálogos para los selectores ----------------
+   Los pickers de equipamiento no muestran una lista plana: separan las
+   piezas de armadura por material (Placa/Cuero/Tela) y los off-hand por
+   facción, igual que se organiza el equipo en el juego. El material/facción
+   se deduce del propio uniquename, así que no hace falta mantener un mapeo
+   aparte a mano. */
+function materialFromSuffix(suffix) {
+  if (!suffix) return 'leather';
+  if (suffix.includes('PLATE')) return 'plate';
+  if (suffix.includes('CLOTH')) return 'cloth';
+  return 'leather';
+}
+const MATERIAL_LABEL = { plate: 'Placa', leather: 'Cuero', cloth: 'Tela' };
+function groupArmorDict(dict) {
+  const buckets = { plate: {}, leather: {}, cloth: {} };
+  Object.keys(dict).forEach(key => {
+    buckets[materialFromSuffix(dict[key][1])][key] = dict[key];
+  });
+  return ['plate', 'leather', 'cloth']
+    .filter(m => Object.keys(buckets[m]).length)
+    .map(m => ({ label: MATERIAL_LABEL[m], entries: buckets[m] }));
+}
+const HELM_GROUPED = groupArmorDict(HELM);
+const CHEST_GROUPED = groupArmorDict(CHEST);
+const BOOTS_GROUPED = groupArmorDict(BOOTS);
+
+/* El off-hand en Albion se separa oficialmente en 3 categorías de arma
+   (Escudo / Cuerno / Tomo), NO por facción de origen (Avalon, Morgana,
+   etc. — eso es solo el "color"/procedencia de cada ítem dentro de su
+   categoría real). Cada ítem se asigna a mano por su unique name porque,
+   a diferencia de las armas principales, los sufijos de off-hand no
+   comparten una raíz de texto común por categoría (p. ej. "Cuerno" incluye
+   OFF_TORCH, OFF_HORN_KEEPER, OFF_LAMP_UNDEAD, etc. — nombres sin nada en
+   común salvo pertenecer al mismo árbol de ítem en el juego). */
+const OFF_CATEGORY = {
+  OFF_SHIELD: 'shield', OFF_SHIELD_AVALON: 'shield', OFF_SPIKEDSHIELD_MORGANA: 'shield',
+  OFF_SHIELD_HELL: 'shield', OFF_TOWERSHIELD_UNDEAD: 'shield', OFF_SHIELD_CRYSTAL: 'shield',
+  OFF_TORCH: 'horn', OFF_HORN_KEEPER: 'horn', OFF_JESTERCANE_HELL: 'horn',
+  OFF_LAMP_UNDEAD: 'horn', OFF_TALISMAN_AVALON: 'horn', OFF_TORCH_CRYSTAL: 'horn',
+  OFF_BOOK: 'tome', OFF_ORB_MORGANA: 'tome', OFF_DEMONSKULL_HELL: 'tome',
+  OFF_TOTEM_KEEPER: 'tome', OFF_CENSER_AVALON: 'tome', OFF_TOME_CRYSTAL: 'tome',
+};
+const OFF_CATEGORY_LABEL = { shield: 'Escudos', horn: 'Cuernos / Antorchas', tome: 'Tomos / Reliquias' };
+function groupOffDict(dict) {
+  const order = ['shield', 'horn', 'tome'];
+  const buckets = {};
+  order.forEach(o => { buckets[o] = {}; });
+  Object.keys(dict).forEach(key => {
+    const cat = OFF_CATEGORY[dict[key][1]] || 'tome';
+    buckets[cat][key] = dict[key];
+  });
+  return order.filter(o => Object.keys(buckets[o]).length).map(o => ({ label: OFF_CATEGORY_LABEL[o], entries: buckets[o] }));
+}
+const OFF_GROUPED = groupOffDict(OFF);
+
+/* ---------------- Estadísticas estimadas por equipamiento ----------------
+   Para las builds en Solitario el gráfico no es un dato fijo: se recalcula
+   según el arma y las piezas que el jugador tenga puestas en ese momento.
+   Es una estimación propia (no datos oficiales) en base a: el arquetipo de
+   la familia de arma (daño/control/sustain de su kit), el peso de la
+   armadura del pecho (Placa = más tanque y menos movilidad, Tela = más
+   frágil pero más utilidad) y el off-hand equipado. */
+const ARMOR_MOD = {
+  plate: { dano: 0, supervivencia: 2, movilidad: -2, sustain: 0, utilidad: 0 },
+  leather: { dano: 0, supervivencia: 0, movilidad: 1, sustain: 0, utilidad: 0 },
+  cloth: { dano: 1, supervivencia: -2, movilidad: 0, sustain: 0, utilidad: 1 },
+};
+const OFF_MOD = {
+  OFF_SHIELD: { supervivencia: 2 },
+  OFF_TORCH: { movilidad: 1 },
+  OFF_SHIELD_AVALON: { supervivencia: 3 },
+  OFF_TALISMAN_AVALON: { sustain: 2 },
+  OFF_CENSER_AVALON: { sustain: 1, utilidad: 1 },
+  OFF_ORB_MORGANA: { sustain: 2 },
+  OFF_SPIKEDSHIELD_MORGANA: { utilidad: 2 },
+  OFF_HORN_KEEPER: { utilidad: 2, sustain: 1 },
+  OFF_TOTEM_KEEPER: { sustain: 2, utilidad: 1 },
+  OFF_DEMONSKULL_HELL: { dano: 1, utilidad: 2 },
+  OFF_JESTERCANE_HELL: { utilidad: 2 },
+  OFF_SHIELD_HELL: { supervivencia: 2 },
+  OFF_TOWERSHIELD_UNDEAD: { supervivencia: 3 },
+  OFF_LAMP_UNDEAD: { utilidad: 1, sustain: 1 },
+  OFF_BOOK: { sustain: 2 },
+  OFF_SHIELD_CRYSTAL: { supervivencia: 2 },
+  OFF_TOME_CRYSTAL: { sustain: 2 },
+  OFF_TORCH_CRYSTAL: { movilidad: 1 },
+};
+
+/* ---------------- Catálogo de comida (consumibles) ----------------
+   De los 9 tipos de plato que existen en Albion, solo Guiso (Stew) y
+   Sándwich llegan a T8 — el resto tiene un tier máximo más bajo (según la
+   propia data del juego), así que no se incluyen acá para no romper el
+   esquema de íconos T8 fijo de la herramienta. Cada plato (y su variante de
+   pescado/avalonense) aporta un pequeño bonus a las estadísticas, igual que
+   una pieza de off-hand. */
+const FOOD = {
+  STEW: ['Estofado de Res (Beef Stew)', 'MEAL_STEW'],
+  STEW_FISH: ['Estofado de Anguila (Deadwater Eel Stew)', 'MEAL_STEW_FISH'],
+  STEW_AVALON: ['Estofado Avalonense (Avalonian Beef Stew)', 'MEAL_STEW_AVALON'],
+  SANDWICH: ['Sándwich de Res (Beef Sandwich)', 'MEAL_SANDWICH'],
+  SANDWICH_FISH: ['Sándwich Torrente (Thunderfall Lurcher Sandwich)', 'MEAL_SANDWICH_FISH'],
+  SANDWICH_AVALON: ['Sándwich Avalonense (Avalonian Beef Sandwich)', 'MEAL_SANDWICH_AVALON'],
+};
+const FOOD_MOD = {
+  MEAL_STEW: { dano: 1 },
+  MEAL_STEW_FISH: { dano: 1, utilidad: 1 },
+  MEAL_STEW_AVALON: { dano: 1, sustain: 1 },
+  MEAL_SANDWICH: { supervivencia: 1 },
+  MEAL_SANDWICH_FISH: { supervivencia: 1, sustain: 1 },
+  MEAL_SANDWICH_AVALON: { supervivencia: 1, utilidad: 1 },
+};
+
+function clamp10(n) { return Math.max(0, Math.min(10, Math.round(n))); }
+function computeSoloStats(weapon, slot) {
+  const fam = weaponFamilyOf(weapon.u);
+  const base = fam.stats;
+  const chestPiece = effectivePiece(slot, weapon, 'chest');
+  const armorMod = ARMOR_MOD[materialFromSuffix(chestPiece ? chestPiece[1] : null)];
+  const offPiece = effectivePiece(slot, weapon, 'off');
+  const offMod = (offPiece && OFF_MOD[offPiece[1]]) || {};
+  const foodPiece = effectivePiece(slot, weapon, 'food');
+  const foodMod = (foodPiece && FOOD_MOD[foodPiece[1]]) || {};
+  const out = {};
+  Object.keys(SOLO_STATS_LABELS).forEach(k => {
+    out[k] = clamp10((base[k] || 0) + (armorMod[k] || 0) + (offMod[k] || 0) + (foodMod[k] || 0));
+  });
+  return out;
+}
+
+/* Helper para armar una build completa: arma + set de armadura + capa (+ offhand y comida opcionales) */
+function build(name, weaponU, helmKey, chestKey, bootsKey, capeKey, off, foodKey) {
+  return {
+    name,
+    u: weaponU,
+    helm: helmKey ? HELM[helmKey] : null,
+    chest: chestKey ? CHEST[chestKey] : null,
+    boots: bootsKey ? BOOTS[bootsKey] : null,
+    cape: capeKey ? CAPE[capeKey] : null,
+    off: off || null, // [nombre, uniquename]
+    food: foodKey ? FOOD[foodKey] : null,
+  };
+}
+
+/* ---------------- Catálogo de roles ---------------- */
+const ROLES = {
+  caller: {
+    label: 'Caller / IC',
+    icon: '📯',
+    desc: 'Guía la formación, marca objetivos, decide engages/retiradas. Necesita movilidad y visión.',
+    weapons: [
+      build('Báculo Terrúnico — "Golem" (Earthrune Staff)', '2H_SHAPESHIFTER_KEEPER', 'CLERIC', 'JUDICATOR', 'HUNTER', 'MARTLOCK'),
+      build('Maza (Engage Caller — Kite/Brawl)', 'MAIN_MACE', 'SOLDIER', 'JUDICATOR', 'ROYAL', 'MARTLOCK', ['Égida Astral (Astral Aegis)', 'OFF_SHIELD_AVALON']),
+      build('Maza Incubo (Incubus Mace) (Azul/Dorado)', 'MAIN_MACE_HELL', 'SOLDIER', 'GUARDIAN', 'ROYAL', 'MARTLOCK'),
+      build('Lanza', 'MAIN_SPEAR', 'SOLDIER', 'SOLDIER', 'MERCENARY', 'MARTLOCK', ['Égida Astral (Astral Aegis)', 'OFF_SHIELD_AVALON']),
+      build('Espadas Duales', '2H_DUALSWORD', 'ASSASSIN', 'HELLION', 'STALKER', 'LYMHURST'),
+      build('Montura de Batalla (Dawnclaw / Mammoth)', null, 'ASSASSIN', 'HELLION', 'STALKER', 'MARTLOCK'),
+    ],
+    armor: 'Cuero/Cloth ligero — prioriza visión y movilidad · Kite: Golem o Maza · Brawl: Maza · Grupales: Incubo · Estática: Lanza (pull/scout) · Nota ago-2026 (Radiant Wilds): el nuevo sistema de "Disarray" penaliza acumular muchas monturas de batalla en el grupo — tenerlo en cuenta si el kite se arma muy montado.',
+  },
+  tanque: {
+    label: 'Tanque',
+    icon: '🛡️',
+    desc: 'Absorbe daño en la primera línea, inicia peleas y protege al grupo.',
+    weapons: [
+      build('Martillo Gigante', '2H_HAMMER', 'KNIGHT', 'KNIGHT', 'GRAVEGUARD', 'MARTLOCK'),
+      build('Maza', 'MAIN_MACE', 'SOLDIER', 'SOLDIER', 'MERCENARY', 'MARTLOCK', ['Égida Astral (Astral Aegis)', 'OFF_SHIELD_AVALON']),
+      build('Maza Pesada (Heavy Mace)', '2H_MACE', 'JUDICATOR', 'GUARDIAN', 'VALOR', 'MARTLOCK'),
+      build('Alabarda', '2H_HALBERD', 'SOLDIER', 'SOLDIER', 'MERCENARY', 'LYMHURST'),
+      build('Báculo Terrúnico — Engage Tank', '2H_SHAPESHIFTER_KEEPER', 'CLERIC', 'JUDICATOR', 'HUNTER', 'MARTLOCK'),
+      build('Maza de Lecho de Roca (Bedrock Mace)', 'MAIN_ROCKMACE_KEEPER', 'HELLION', 'DEMON', 'MERCENARY', 'MARTLOCK', ['Bastón de Fisgoneo (Leering Cane)', 'OFF_JESTERCANE_HELL']),
+      build('Maza + Bruma del Anciano (Brawl)', 'MAIN_MACE', 'ASSASSIN', 'KNIGHT', 'STALKER', 'MARTLOCK', ['Bruma del Anciano (Mistcaller)', 'OFF_HORN_KEEPER']),
+      build('Hacha de la Justicia (Hand of Justice)', '2H_HAMMER_AVALON', 'SOLDIER', 'JUDICATOR', 'ROYAL', 'MARTLOCK'),
+      build('Guardapactos (Oathkeepers)', '2H_DUALMACE_AVALON', 'KNIGHT', 'DEMON', 'VALOR', 'SMUGGLER'),
+      build('Martillo-Lanza (Polehammer) (Azul/Dorado)', '2H_POLEHAMMER', 'GUARDIAN', 'GUARDIAN', 'GUARDIAN', 'AVALON'),
+    ],
+    armor: 'Placa completa · meta ago-2026 (Radiant Wilds): Hand of Justice y Oathkeepers siguen siendo picks válidos, pero hay señales de que ya no están "en alza" como antes — Maza y Grovekeeper vuelven a mencionarse como base de ZVZ. Conviene confirmar contra el parche vigente antes de armar la comp alrededor de ellas.',
+  },
+  sanador: {
+    label: 'Sanador',
+    icon: '✚',
+    desc: 'Mantiene con vida al grupo mediante sanación directa o de área.',
+    weapons: [
+      build('Báculo Sagrado', 'MAIN_HOLYSTAFF', 'CLERIC', 'CLERIC', 'CLERIC', 'LYMHURST', ['Diario de Rosalia (Book)', 'OFF_BOOK']),
+      build('Gran Báculo Sagrado', '2H_HOLYSTAFF', 'ASSASSIN', 'CLERIC', 'MERCENARY', 'LYMHURST'),
+      build('Báculo Divino', '2H_DIVINESTAFF', 'ASSASSIN', 'CLERIC', 'STALKER', 'LYMHURST'),
+      build('Báculo Caído (Redención)', '2H_HOLYSTAFF_UNDEAD', 'CLERIC', 'ROYAL', 'SCHOLAR', 'LYMHURST'),
+      build('Báculo del Caído (Fallen Staff)', '2H_HOLYSTAFF_HELL', 'ASSASSIN', 'DEMON', 'SCHOLAR', 'LYMHURST'),
+      build('Báculo Silvestre', 'MAIN_NATURESTAFF', 'ASSASSIN', 'SCHOLAR', 'STALKER', 'LYMHURST', ['Diario de Rosalia (Book)', 'OFF_BOOK']),
+      build('Gran Báculo Silvestre (Great Nature Staff)', '2H_NATURESTAFF', 'ASSASSIN', 'SCHOLAR', 'MERCENARY', 'CAERLEON'),
+      build('Báculo Druídico (Druidic Staff)', 'MAIN_NATURESTAFF_KEEPER', 'DRUID', 'DRUID', 'DRUID', 'KEEPER'),
+      build('Báculo Maldiviviente (Lifecurse)', 'MAIN_CURSEDSTAFF_UNDEAD', 'ASSASSIN', 'DEMON', 'STALKER', 'LYMHURST', ['Diario de Rosalia (Book)', 'OFF_BOOK']),
+      build('Báculo de la Plaga (Blight)', '2H_NATURESTAFF_HELL', 'ASSASSIN', 'CLERIC', 'MERCENARY', 'LYMHURST'),
+      build('Hallowfall', 'MAIN_HOLYSTAFF_AVALON', 'KNIGHT', 'FEYSCALE', 'CLERIC', 'LYMHURST', ['Bruma del Anciano (Mistcaller)', 'OFF_HORN_KEEPER']),
+      build('Báculo Sagrado + Bruma del Anciano', 'MAIN_HOLYSTAFF', 'KNIGHT', 'FEYSCALE', 'STALKER', 'LYMHURST', ['Bruma del Anciano (Mistcaller)', 'OFF_HORN_KEEPER']),
+      build('Báculo Sagrado (Azul/Dorado)', 'MAIN_HOLYSTAFF', 'GRAVEGUARD', 'ROYAL', 'STALKER', 'MARTLOCK'),
+      build('Báculo Caído (Redención) (Azul/Dorado)', '2H_HOLYSTAFF_UNDEAD', 'PURITY', 'PURITY', 'PURITY', 'AVALON'),
+    ],
+    armor: 'Túnica (tela) — Capucha de Druida / Robe',
+  },
+  soporte: {
+    label: 'Soporte / CC',
+    icon: '❄️',
+    desc: 'Control de masas, buffs/debuffs y utilidad para el grupo.',
+    weapons: [
+      build('Báculo Enigmático', '2H_ENIGMATICSTAFF', 'ASSASSIN', 'CLERIC', 'MERCENARY', 'LYMHURST'),
+      build('Báculo Arcano', 'MAIN_ARCANESTAFF', 'ASSASSIN', 'KNIGHT', 'MERCENARY', 'MARTLOCK', ['Muisak', 'OFF_DEMONSKULL_HELL']),
+      build('Gran Báculo Arcano', '2H_ARCANESTAFF', 'ASSASSIN', 'DUSKWEAVER', 'MERCENARY', 'MARTLOCK'),
+      build('Báculo Oculto (Occult)', '2H_ARCANESTAFF_HELL', 'ASSASSIN', 'ROYAL', 'MERCENARY', 'LYMHURST'),
+      build('Báculo Arraigado (Rootbound)', '2H_SHAPESHIFTER_SET2', 'ASSASSIN', 'JUDICATOR', 'MERCENARY', 'CAERLEON'),
+      build('Guardabosques (Grovekeeper)', '2H_RAM_KEEPER', 'JUDICATOR', 'DUSKWEAVER', 'HUNTER', 'MARTLOCK'),
+      build('Prisma de Escarcha Eterna (Permafrost — CC)', '2H_ICECRYSTAL_UNDEAD', 'ASSASSIN', 'SCHOLAR', 'GRAVEGUARD', 'MORGANA'),
+      build('Locus Malévolo (Malevolent Locus)', '2H_ENIGMATICORB_MORGANA', 'ASSASSIN', 'DEMON', 'STALKER', 'MARTLOCK'),
+      build('Báculo Glacial (Icicle Staff)', '2H_ICEGAUNTLETS_HELL', 'ASSASSIN', 'DUSKWEAVER', 'MERCENARY', 'MARTLOCK'),
+      build('Maza de Lecho de Roca (Bedrock — Support)', 'MAIN_ROCKMACE_KEEPER', 'HELLION', 'DEMON', 'MERCENARY', 'MARTLOCK', ['Bastón de Fisgoneo (Leering Cane)', 'OFF_JESTERCANE_HELL']),
+      build('Prisma de Escarcha Eterna (Permafrost) (Azul/Dorado)', '2H_ICECRYSTAL_UNDEAD', 'ROYAL_CLOTH', 'SCHOLAR', 'ROYAL_CLOTH', 'MARTLOCK'),
+    ],
+    armor: 'Túnica (tela) o Cuero según build · meta ago-2026 (Radiant Wilds): Malevolent Locus se sigue jugando como CC, pero hay señales de que perdió terreno frente a otras opciones este parche — validarlo antes de depender de él como pick principal.',
+  },
+  dps_distancia: {
+    label: 'DPS Distancia',
+    icon: '🏹',
+    desc: 'Daño sostenido desde lejos, hostiga y remata objetivos.',
+    weapons: [
+      build('Arco', '2H_BOW', 'ASSASSIN', 'HUNTER', 'HUNTER', 'LYMHURST'),
+      build('Arco Largo', '2H_LONGBOW', 'ASSASSIN', 'FEYSCALE', 'STALKER', 'LYMHURST'),
+      build('Arco de Guerra', '2H_WARBOW', 'ASSASSIN', 'HUNTER', 'HUNTER', 'MARTLOCK'),
+      build('Ballesta', '2H_CROSSBOW', 'ASSASSIN', 'HUNTER', 'STALKER', 'MARTLOCK'),
+      build('Ballesta Pesada', '2H_CROSSBOWLARGE', 'ASSASSIN', 'HUNTER', 'STALKER', 'MARTLOCK'),
+      build('Arco Lamentoso (Wailing Bow)', '2H_BOW_HELL', 'SOLDIER', 'CLERIC', 'STALKER', 'FORTSTERLING'),
+      build('Arco de Badon (Bow of Badon) (Azul/Dorado)', '2H_BOW_KEEPER', 'STALKER', 'ROYAL', 'ROYAL_CLOTH', 'MARTLOCK'),
+      build('Perforaniebla (Mistpiercer) (Azul/Dorado)', '2H_BOW_AVALON', 'TENACITY', 'TENACITY', 'TENACITY', 'AVALON'),
+    ],
+    armor: 'Cuero (jinete/scout) · meta ago-2026 (Radiant Wilds): los arcos en general vienen de un parche de nerfeos — Wailing Bow sigue siendo un pick jugado pero probablemente ya no domina con la fuerza de antes; Longbow sigue relegado. Confirmar contra el parche vigente antes de asumirlo S-Tier.',
+  },
+  dps_mago: {
+    label: 'DPS Mago',
+    icon: '🔥',
+    desc: 'Daño de área o focalizado con magia elemental/oscura.',
+    weapons: [
+      build('Báculo de Fuego', 'MAIN_FIRESTAFF', 'ASSASSIN', 'SCHOLAR', 'SCHOLAR', 'LYMHURST', ['Diario de Rosalia (Book)', 'OFF_BOOK']),
+      build('Gran Báculo de Fuego', '2H_FIRESTAFF', 'ASSASSIN', 'SCHOLAR', 'SCHOLAR', 'LYMHURST'),
+      build('Báculo de Escarcha', 'MAIN_FROSTSTAFF', 'ASSASSIN', 'SCHOLAR', 'SCHOLAR', 'MARTLOCK', ['Diario de Rosalia (Book)', 'OFF_BOOK']),
+      build('Gran Báculo de Escarcha', '2H_FROSTSTAFF', 'ASSASSIN', 'SCHOLAR', 'SCHOLAR', 'MARTLOCK'),
+      build('Báculo Maldito', 'MAIN_CURSEDSTAFF', 'ASSASSIN', 'SCHOLAR', 'SCHOLAR', 'MORGANA', ['Diario de Rosalia (Book)', 'OFF_BOOK']),
+      build('Gran Báculo Maldito', '2H_CURSEDSTAFF', 'ASSASSIN', 'SCHOLAR', 'SCHOLAR', 'MORGANA'),
+      build('Prisma de Escarcha Eterna (Permafrost)', '2H_ICECRYSTAL_UNDEAD', 'ASSASSIN', 'SCHOLAR', 'GRAVEGUARD', 'MORGANA'),
+      build('Báculo de Condenación (Damnation)', '2H_CURSEDSTAFF_MORGANA', 'ASSASSIN', 'SCHOLAR', 'STALKER', 'MORGANA'),
+      build('Báculo de Fuego (Flamígero) (Azul/Dorado)', 'MAIN_FIRESTAFF', 'ROYAL_CLOTH', 'ROYAL_CLOTH', 'ROYAL_CLOTH', 'MARTLOCK'),
+      build('Invocador Oscuro (Shadowcaller) (Azul/Dorado)', 'MAIN_CURSEDSTAFF_AVALON', 'DRUID', 'ROYAL', 'CULTIST', 'MARTLOCK', ['Vela de Cripta (Cryptcandle)', 'OFF_LAMP_UNDEAD']),
+      build('Báculo de Fuego Salvaje (Wildfire Staff) (Azul/Dorado)', 'MAIN_FIRESTAFF_KEEPER', 'PURITY', 'PURITY', 'PURITY', 'AVALON'),
+    ],
+    armor: 'Túnica (tela)',
+  },
+  dps_melee: {
+    label: 'DPS Cuerpo a Cuerpo',
+    icon: '⚔️',
+    desc: 'Daño explosivo/bomba en el frente o flancos enemigos.',
+    weapons: [
+      build('Mandoble', '2H_CLAYMORE', 'ASSASSIN', 'HELLION', 'STALKER', 'LYMHURST'),
+      build('Espada Ancha', 'MAIN_SWORD', 'ASSASSIN', 'HELLION', 'STALKER', 'LYMHURST', ['Rompecaras (Facebreaker)', 'OFF_SPIKEDSHIELD_MORGANA']),
+      build('Hacha Gigante (Greataxe)', '2H_AXE', 'ASSASSIN', 'HELLION', 'STALKER', 'LYMHURST'),
+      build('Espadas Duales', '2H_DUALSWORD', 'ASSASSIN', 'HELLION', 'STALKER', 'LYMHURST'),
+      build('Hacha del Reino (Realmbreaker)', '2H_AXE_AVALON', 'KNIGHT', 'DEMON', 'VALOR', 'MARTLOCK'),
+      build('Guanteletes con Púas (Spiked Gauntlets)', '2H_KNUCKLES_SET3', 'HELLION', 'HELLION', 'STALKER', 'LYMHURST'),
+      build('Arpón Espiritual (Spirithunter)', '2H_HARPOON_HELL', 'ASSASSIN', 'HELLION', 'STALKER', 'MARTLOCK'),
+      build('Canción del Alba (Dawnsong)', '2H_FIRE_RINGPAIR_AVALON', 'KNIGHT', 'FEYSCALE', 'GRAVEGUARD', 'MARTLOCK'),
+      build('Espada Infinita (Infinity Blade)', 'MAIN_SWORD_CRYSTAL', 'CLERIC', 'HELLION', 'ROYAL', 'LYMHURST', ['Rompecaras (Facebreaker)', 'OFF_SPIKEDSHIELD_MORGANA']),
+      build('Desangradora (Bloodletter)', 'MAIN_RAPIER_MORGANA', 'CLERIC', 'HELLION', 'STALKER', 'LYMHURST', ['Rompecaras (Facebreaker)', 'OFF_SPIKEDSHIELD_MORGANA']),
+      build('Espada Tallada (Carving Sword) ⭐S-Tier', '2H_CLEAVER_HELL', 'ASSASSIN', 'DEMON', 'STALKER', 'MARTLOCK'),
+      build('Báculo Acechador (Prowling Staff) ⭐S-Tier', '2H_SHAPESHIFTER_SET1', 'ASSASSIN', 'HELLION', 'STALKER', 'MARTLOCK'),
+      build('Báculo de Doble Filo (Double Bladed Staff) ⭐S-Tier', '2H_DOUBLEBLADEDSTAFF', 'ASSASSIN', 'DEMON', 'STALKER', 'LYMHURST'),
+      build('Guadaña Infernal (Infernal Scythe)', '2H_SCYTHE_HELL', 'SOLDIER', 'HELLION', 'STALKER', 'SMUGGLER'),
+      build('Desangradora (Bloodletter) (Azul/Dorado)', 'MAIN_RAPIER_MORGANA', 'TENACITY', 'TENACITY', 'TENACITY', 'AVALON'),
+    ],
+    armor: 'Cuero o Placa según build · meta ago-2026 (Radiant Wilds): Carving Sword, Báculo Acechador y Báculo de Doble Filo siguen confirmados como S-Tier de ZVZ — las hachas también vienen de recibir buffs de movilidad este parche, vale la pena tenerlas en cuenta.',
+  },
+};
+const ROLE_KEYS = Object.keys(ROLES);
+
+/* ---------------- Familias de armas (para el picker "todas las del juego" y
+   para estimar estadísticas) ----------------
+   Cada familia agrupa armas por arquetipo (ej. todos los báculos de fuego
+   juntos) usando un patrón sobre el uniquename — así no hace falta mantener
+   una lista aparte a mano por cada arma nueva que se agregue. El orden
+   importa: se evalúa de arriba a abajo y gana el primer patrón que matchee
+   (ej. las ballestas se chequean antes que los arcos porque "CROSSBOW"
+   contiene "BOW"). */
+/* Familias de armas — agrupadas EXACTAMENTE como Albion las separa en sus
+   propias 17 categorías de arma principal (Guerrero: Espada/Hacha/Maza/
+   Martillo/Lanza/Guantes de Guerra/Ballesta · Cazador: Arco/Bastón de
+   Combate/Báculo Cambiaformas/Daga/Báculo de Naturaleza · Mago: Báculo de
+   Fuego/Escarcha/Arcano/Sagrado/Amaldecido), no por una lectura suelta del
+   nombre interno de cada ítem. Esto corrige varios casos donde el ítem
+   interno de Albion NO coincide con lo que el nombre en español sugeriría:
+   Alabarda y Guadañas de un filo (Infernal Scythe / Crystal Reaper) son
+   oficialmente HACHAS, no lanzas ni su propia familia; la Guadaña Gemela
+   (Soulscythe) y el Báculo de Doble Filo son oficialmente BASTÓN DE
+   COMBATE (Quarterstaff); Cantoclaro (Evensong) y Canción del Alba
+   (Dawnsong) son Báculo Arcano/de Fuego, no "Puños" (su ítem interno
+   contiene "RINGPAIR" pero no son guantes); Espadas Duales es ESPADA, no
+   daga; y Desangradora (Bloodletter) es oficialmente DAGA, no un "Estoque"
+   aparte (Albion no tiene una categoría de arma separada para estoques).
+   El ORDEN importa: `weaponFamilyOf` devuelve la primera familia cuyo
+   patrón matchea, así que las familias cuyo texto interno es "más
+   específico" (Ballestas antes que Arcos, porque todo CROSSBOW contiene
+   también "BOW"; Bastón de Combate antes que Hachas, porque Guadaña
+   Gemela es TWINSCYTHE y contiene "SCYTHE") van primero. */
+const WEAPON_FAMILIES = [
+  { label: 'Ballestas', match: /CROSSBOW/, stats: { dano: 8, supervivencia: 3, movilidad: 5, sustain: 2, utilidad: 5 } },
+  { label: 'Bastones de Combate (Quarterstaff)', match: /DOUBLEBLADEDSTAFF|TWINSCYTHE|QUARTERSTAFF|IRONCLADEDSTAFF|COMBATSTAFF|ROCKSTAFF/, stats: { dano: 7, supervivencia: 5, movilidad: 7, sustain: 4, utilidad: 5 } },
+  { label: 'Arcos', match: /BOW/, stats: { dano: 7, supervivencia: 4, movilidad: 7, sustain: 2, utilidad: 4 } },
+  { label: 'Dagas', match: /DAGGER|RAPIER|DUALSICKLE|CLAWPAIR/, stats: { dano: 8, supervivencia: 4, movilidad: 8, sustain: 4, utilidad: 4 } },
+  { label: 'Espadas', match: /SWORD|CLAYMORE|CLEAVER|SCIMITAR/, stats: { dano: 7, supervivencia: 5, movilidad: 6, sustain: 5, utilidad: 4 } },
+  { label: 'Hachas', match: /AXE|HALBERD|SCYTHE/, stats: { dano: 7, supervivencia: 6, movilidad: 5, sustain: 6, utilidad: 3 } },
+  { label: 'Mazas', match: /MACE|FLAIL/, stats: { dano: 5, supervivencia: 7, movilidad: 4, sustain: 5, utilidad: 6 } },
+  { label: 'Martillos', match: /HAMMER|RAM_KEEPER/, stats: { dano: 6, supervivencia: 8, movilidad: 2, sustain: 3, utilidad: 6 } },
+  { label: 'Lanzas', match: /SPEAR|GLAIVE|HARPOON|TRIDENT/, stats: { dano: 5, supervivencia: 6, movilidad: 5, sustain: 3, utilidad: 6 } },
+  { label: 'Guantes de Guerra', match: /KNUCKLES/, stats: { dano: 7, supervivencia: 5, movilidad: 6, sustain: 7, utilidad: 4 } },
+  { label: 'Báculos de Fuego', match: /FIRESTAFF|FIRE_RINGPAIR|INFERNOSTAFF/, stats: { dano: 9, supervivencia: 3, movilidad: 4, sustain: 2, utilidad: 5 } },
+  { label: 'Báculos de Escarcha', match: /FROSTSTAFF|ICECRYSTAL|ICEGAUNTLETS|GLACIALSTAFF/, stats: { dano: 7, supervivencia: 4, movilidad: 3, sustain: 3, utilidad: 8 } },
+  { label: 'Báculos Arcanos', match: /ARCANESTAFF|ENIGMATICSTAFF|ENIGMATICORB|ARCANE_RINGPAIR/, stats: { dano: 6, supervivencia: 4, movilidad: 4, sustain: 4, utilidad: 8 } },
+  { label: 'Báculos Sagrados', match: /HOLYSTAFF|DIVINESTAFF|FALLENSTAFF/, stats: { dano: 3, supervivencia: 5, movilidad: 4, sustain: 9, utilidad: 6 } },
+  { label: 'Báculos de Naturaleza', match: /NATURESTAFF|WILDSTAFF/, stats: { dano: 4, supervivencia: 5, movilidad: 5, sustain: 9, utilidad: 6 } },
+  { label: 'Báculos Cambiaformas (Shapeshifter)', match: /SHAPESHIFTER/, stats: { dano: 6, supervivencia: 6, movilidad: 6, sustain: 5, utilidad: 6 } },
+  { label: 'Báculos Amaldecidos', match: /CURSEDSTAFF|DEMONICSTAFF|SKULLORB/, stats: { dano: 7, supervivencia: 5, movilidad: 3, sustain: 7, utilidad: 5 } },
+];
+const WEAPON_FAMILY_MOUNT = { label: 'Monturas de Batalla', stats: { dano: 2, supervivencia: 6, movilidad: 9, sustain: 2, utilidad: 4 } };
+const WEAPON_FAMILY_OTHER = { label: 'Otras', stats: { dano: 5, supervivencia: 5, movilidad: 5, sustain: 5, utilidad: 5 } };
+function weaponFamilyOf(u) {
+  if (!u) return WEAPON_FAMILY_MOUNT;
+  for (const fam of WEAPON_FAMILIES) { if (fam.match.test(u)) return fam; }
+  return WEAPON_FAMILY_OTHER;
+}
+
+/* Un par de armas emblemáticas de PvP en solitario que no aparecen en
+   ninguna composición de roster (Fists of Avalon / Deathgivers son picks de
+   duelo/gank, no de ZVZ/Grupales/Estática) — se suman igual al catálogo
+   completo de Solitario para que estén disponibles al editar la build. */
+const SOLO_EXTRA_WEAPONS = [
+  build('Puños de Avalon (Fists of Avalon)', '2H_KNUCKLES_AVALON', 'HUNTER', 'HUNTER', 'HUNTER', 'THETFORD'),
+  build('Garras Mortales (Deathgivers)', '2H_DUALSICKLE_UNDEAD', 'SPECTER', 'SPECTER', 'SPECTER', 'UNDEAD'),
+
+  // Ballestas
+  build('Ballesta Ligera (Light Crossbow)', 'MAIN_1HCROSSBOW', 'HUNTER', 'HUNTER', 'HUNTER', 'LYMHURST'),
+  build('Arco de Asedio (Siegebow)', '2H_CROSSBOWLARGE_MORGANA', 'STALKER', 'STALKER', 'STALKER', 'CAERLEON'),
+  build('Modeladora de Energía (Energy Shaper)', '2H_CROSSBOW_CANNON_AVALON', 'TENACITY', 'TENACITY', 'TENACITY', 'AVALON'),
+  build('Detonadoras de Arco (Arclight Blasters)', '2H_DUALCROSSBOW_CRYSTAL', 'HUNTER', 'HUNTER', 'HUNTER', 'MARTLOCK'),
+  build('Lanzapernos (Boltcasters)', '2H_DUALCROSSBOW_HELL', 'HELLION', 'HELLION', 'HELLION_BOOTS', 'DEMON'),
+  build('Repetidora del Lamento (Weeping Repeater)', '2H_REPEATINGCROSSBOW_UNDEAD', 'SPECTER', 'SPECTER', 'SPECTER', 'UNDEAD'),
+
+  // Arcos
+  build('Perforaniebla (Mistpiercer)', '2H_BOW_AVALON', 'TENACITY', 'TENACITY', 'TENACITY', 'AVALON'),
+  build('Arco de Badon (Bow of Badon)', '2H_BOW_KEEPER', 'HUNTER', 'HUNTER', 'HUNTER', 'KEEPER'),
+  build('Arco Susurrante (Whispering Bow)', '2H_LONGBOW_UNDEAD', 'SPECTER', 'SPECTER', 'SPECTER', 'UNDEAD'),
+  build('Arco Cruzacielos (Skystrider Bow)', '2H_BOW_CRYSTAL', 'HUNTER', 'HUNTER', 'HUNTER', 'MARTLOCK'),
+
+  // Dagas / Armas Gemelas
+  build('Daga (Dagger)', 'MAIN_DAGGER', 'ASSASSIN', 'ASSASSIN', 'ASSASSIN', 'LYMHURST'),
+  build('Colmillo Demoníaco (Demonfang)', 'MAIN_DAGGER_HELL', 'HELLION', 'HELLION', 'HELLION_BOOTS', 'DEMON'),
+  build('Garras (Claws)', '2H_CLAWPAIR', 'ASSASSIN', 'ASSASSIN', 'ASSASSIN', 'CAERLEON'),
+  build('Par de Dagas (Dagger Pair)', '2H_DAGGERPAIR', 'ASSASSIN', 'ASSASSIN', 'ASSASSIN', 'LYMHURST'),
+  build('Verdugas Gemelas (Twin Slayers)', '2H_DAGGERPAIR_CRYSTAL', 'ASSASSIN', 'ASSASSIN', 'ASSASSIN', 'CAERLEON'),
+  build('Furia Contenida (Bridled Fury)', '2H_DAGGER_KATAR_AVALON', 'TENACITY', 'TENACITY', 'TENACITY', 'AVALON'),
+
+  // Espadas
+  build('Hacedor de Reyes (Kingmaker)', '2H_CLAYMORE_AVALON', 'VALOR', 'VALOR', 'VALOR', 'AVALON'),
+  build('Filo Cimitarra (Clarent Blade)', 'MAIN_SCIMITAR_MORGANA', 'STALKER', 'STALKER', 'STALKER', 'CAERLEON'),
+  build('Par de Galatinas (Galatine Pair)', '2H_DUALSCIMITAR_UNDEAD', 'SPECTER', 'SPECTER', 'SPECTER', 'UNDEAD'),
+
+  // Hachas
+  build('Hacha de Batalla (Battleaxe)', 'MAIN_AXE', 'HELLION', 'HELLION', 'HELLION_BOOTS', 'LYMHURST'),
+  build('Garras de Oso (Bear Paws)', '2H_DUALAXE_KEEPER', 'JUDICATOR', 'JUDICATOR', 'JUDICATOR', 'KEEPER'),
+
+  // Mazas
+  build('Maza de Camlann (Camlann Mace)', '2H_MACE_MORGANA', 'STALKER', 'STALKER', 'STALKER', 'CAERLEON'),
+  build('Monarca Tormenta Aciaga (Dreadstorm Monarch)', 'MAIN_MACE_CRYSTAL', 'SOLDIER', 'SOLDIER', 'SOLDIER', 'MARTLOCK'),
+  build('Mangual (Morning Star)', '2H_FLAIL', 'KNIGHT', 'KNIGHT', 'KNIGHT', 'MARTLOCK'),
+
+  // Martillos
+  build('Martillo (Hammer)', 'MAIN_HAMMER', 'KNIGHT', 'KNIGHT', 'KNIGHT', 'MARTLOCK'),
+  build('Martillo Tumbal (Tombhammer)', '2H_HAMMER_UNDEAD', 'GRAVEGUARD', 'GRAVEGUARD', 'GRAVEGUARD', 'UNDEAD'),
+  build('Martillos de Forja (Forge Hammers)', '2H_DUALHAMMER_HELL', 'DEMON', 'DEMON', 'DEMON', 'DEMON'),
+  build('Martillo-Lanza (Polehammer)', '2H_POLEHAMMER', 'GUARDIAN', 'GUARDIAN', 'GUARDIAN', 'LYMHURST'),
+  build('Martillo Certero (Truebolt Hammer)', '2H_HAMMER_CRYSTAL', 'KNIGHT', 'KNIGHT', 'KNIGHT', 'MARTLOCK'),
+
+  // Lanzas
+  build('Pica (Pike)', '2H_SPEAR', 'SOLDIER', 'SOLDIER', 'SOLDIER', 'LYMHURST'),
+  build('Lanza de la Trinidad (Trinity Spear)', '2H_TRIDENT_UNDEAD', 'SPECTER', 'SPECTER', 'SPECTER', 'UNDEAD'),
+  build('Llamacadáveres (Carrioncaller)', '2H_HALBERD_MORGANA', 'STALKER', 'STALKER', 'STALKER', 'CAERLEON'),
+  build('Guja (Glaive)', '2H_GLAIVE', 'SOLDIER', 'SOLDIER', 'SOLDIER', 'LYMHURST'),
+  build('Guja de la Grieta (Rift Glaive)', '2H_GLAIVE_CRYSTAL', 'SOLDIER', 'SOLDIER', 'SOLDIER', 'MARTLOCK'),
+  build('Lanza de Garza (Heron Spear)', 'MAIN_SPEAR_KEEPER', 'JUDICATOR', 'JUDICATOR', 'JUDICATOR', 'KEEPER'),
+  build('Rompealba (Daybreaker)', 'MAIN_SPEAR_LANCE_AVALON', 'VALOR', 'VALOR', 'VALOR', 'AVALON'),
+
+  // Puños
+  build('Cantoclaro (Evensong)', '2H_ARCANE_RINGPAIR_AVALON', 'TENACITY', 'TENACITY', 'TENACITY', 'AVALON'),
+  build('Manos Infernales (Hellfire Hands)', '2H_KNUCKLES_HELL', 'HELLION', 'HELLION', 'HELLION_BOOTS', 'DEMON'),
+  build('Cesto Cuervoataque (Ravenstrike Cestus)', '2H_KNUCKLES_MORGANA', 'STALKER', 'STALKER', 'STALKER', 'CAERLEON'),
+  build('Guanteletes Úrsidos (Ursine Maulers)', '2H_KNUCKLES_KEEPER', 'JUDICATOR', 'JUDICATOR', 'JUDICATOR', 'KEEPER'),
+  build('Guantes de Peleador (Brawler Gloves)', '2H_KNUCKLES_SET1', 'MERCENARY', 'MERCENARY', 'MERCENARY', 'LYMHURST'),
+  build('Brazales de Batalla (Battle Bracers)', '2H_KNUCKLES_SET2', 'HUNTER', 'HUNTER', 'HUNTER', 'MARTLOCK'),
+  build('Brazales de Pulso (Forcepulse Bracers)', '2H_KNUCKLES_CRYSTAL', 'ASSASSIN', 'ASSASSIN', 'ASSASSIN', 'CAERLEON'),
+
+  // (Segadora de Cristal / Crystal Reaper va en la sección "Hachas" de más
+  // arriba en el catálogo de ROLES — es oficialmente un Hacha, no una
+  // familia de "Guadaña" aparte; ver comentario de WEAPON_FAMILIES).
+  build('Segadora de Cristal (Crystal Reaper)', '2H_SCYTHE_CRYSTAL', 'HELLION', 'HELLION', 'HELLION_BOOTS', 'SMUGGLER'),
+
+  // Bastones de Combate (Quarterstaff) — incluye Guadaña Gemela (Soulscythe):
+  // pese al nombre, es oficialmente un Bastón de Combate, no una Guadaña.
+  build('Bastón Espectral Doble (Phantom Twinblade)', '2H_DOUBLEBLADEDSTAFF_CRYSTAL', 'ASSASSIN', 'ASSASSIN', 'ASSASSIN', 'CAERLEON'),
+  build('Guadaña Gemela (Soulscythe)', '2H_TWINSCYTHE_HELL', 'HELLION', 'HELLION', 'HELLION_BOOTS', 'DEMON'),
+  build('Bastón de Combate (Quarterstaff)', '2H_QUARTERSTAFF', 'MERCENARY', 'MERCENARY', 'MERCENARY', 'LYMHURST'),
+  build('Bastón Enchapado (Iron-clad Staff)', '2H_IRONCLADEDSTAFF', 'SOLDIER', 'SOLDIER', 'MERCENARY', 'LYMHURST'),
+  build('Báculo del Monje Negro (Black Monk Staff)', '2H_COMBATSTAFF_MORGANA', 'STALKER', 'STALKER', 'STALKER', 'CAERLEON'),
+  build('Báculo del Equilibrio (Staff of Balance)', '2H_ROCKSTAFF_KEEPER', 'JUDICATOR', 'JUDICATOR', 'HUNTER', 'KEEPER'),
+  build('Buscagrial (Grailseeker)', '2H_QUARTERSTAFF_AVALON', 'TENACITY', 'TENACITY', 'TENACITY', 'AVALON'),
+
+  // Báculos de Fuego
+  build('Báculo de Azufre (Brimstone Staff)', '2H_FIRESTAFF_HELL', 'FIEND', 'FIEND', 'FIEND', 'DEMON'),
+  build('Báculo de Fuego Salvaje (Wildfire Staff)', 'MAIN_FIRESTAFF_KEEPER', 'DRUID', 'DRUID', 'DRUID', 'KEEPER'),
+  build('Báculo Caminafuego (Flamewalker Staff)', 'MAIN_FIRESTAFF_CRYSTAL', 'SCHOLAR', 'SCHOLAR', 'SCHOLAR', 'MARTLOCK'),
+  build('Báculo Infernal (Infernal Staff)', '2H_INFERNOSTAFF', 'ASSASSIN', 'SCHOLAR', 'SCHOLAR', 'LYMHURST'),
+  build('Báculo Ardiente (Blazing Staff)', '2H_INFERNOSTAFF_MORGANA', 'CULTIST', 'CULTIST', 'CULTIST', 'CAERLEON'),
+
+  // Báculos de Escarcha
+  build('Escalofrío (Chillhowl)', 'MAIN_FROSTSTAFF_AVALON', 'PURITY', 'PURITY', 'PURITY', 'AVALON'),
+  build('Báculo de Escarcha Blanca (Hoarfrost Staff)', 'MAIN_FROSTSTAFF_KEEPER', 'DRUID', 'DRUID', 'DRUID', 'KEEPER'),
+  build('Báculo Ártico (Arctic Staff)', '2H_FROSTSTAFF_CRYSTAL', 'SCHOLAR', 'SCHOLAR', 'SCHOLAR', 'MARTLOCK'),
+  build('Báculo Glacial (Glacial Staff)', '2H_GLACIALSTAFF', 'ASSASSIN', 'SCHOLAR', 'SCHOLAR', 'MARTLOCK'),
+
+  // Báculos Arcanos
+  build('Báculo de Brujería (Witchwork Staff)', 'MAIN_ARCANESTAFF_UNDEAD', 'SPECTER', 'SPECTER', 'SPECTER', 'UNDEAD'),
+  build('Báculo Astral (Astral Staff)', '2H_ARCANESTAFF_CRYSTAL', 'SCHOLAR', 'SCHOLAR', 'SCHOLAR', 'MARTLOCK'),
+
+  // Báculos Sagrados
+  build('Báculo del Toquevida (Lifetouch Staff)', 'MAIN_HOLYSTAFF_MORGANA', 'CULTIST', 'CULTIST', 'CULTIST', 'CAERLEON'),
+  build('Báculo Exaltado (Exalted Staff)', '2H_HOLYSTAFF_CRYSTAL', 'CLERIC', 'CLERIC', 'CLERIC', 'LYMHURST'),
+
+  // Báculos de Naturaleza
+  build('Báculo Desbordante (Rampant Staff)', '2H_NATURESTAFF_KEEPER', 'DRUID', 'DRUID', 'DRUID', 'KEEPER'),
+  build('Llamaluz (Lightcaller)', '2H_SHAPESHIFTER_AVALON', 'PURITY', 'PURITY', 'PURITY', 'AVALON'),
+  build('Báculo Luna de Sangre (Bloodmoon Staff)', '2H_SHAPESHIFTER_MORGANA', 'CULTIST', 'CULTIST', 'CULTIST', 'CAERLEON'),
+  build('Báculo Engendro Infernal (Hellspawn Staff)', '2H_SHAPESHIFTER_HELL', 'FIEND', 'FIEND', 'FIEND', 'DEMON'),
+  build('Báculo Primordial (Primal Staff)', '2H_SHAPESHIFTER_SET3', 'MAGE', 'MAGE', 'MAGE', 'LYMHURST'),
+  build('Báculo Raíz de Hierro (Ironroot Staff)', 'MAIN_NATURESTAFF_AVALON', 'PURITY', 'PURITY', 'PURITY', 'AVALON'),
+  build('Báculo Corteza Forjada (Forgebark Staff)', 'MAIN_NATURESTAFF_CRYSTAL', 'SCHOLAR', 'SCHOLAR', 'SCHOLAR', 'MARTLOCK'),
+  build('Báculo Mirada Quieta (Stillgaze Staff)', '2H_SHAPESHIFTER_CRYSTAL', 'SCHOLAR', 'SCHOLAR', 'SCHOLAR', 'MARTLOCK'),
+  build('Báculo Salvaje (Wild Staff)', '2H_WILDSTAFF', 'ASSASSIN', 'SCHOLAR', 'MERCENARY', 'CAERLEON'),
+
+  // Báculos Amaldecidos
+  build('Invocador Oscuro (Shadowcaller)', 'MAIN_CURSEDSTAFF_AVALON', 'PURITY', 'PURITY', 'PURITY', 'AVALON'),
+  build('Báculo Llamapodrida (Rotcaller Staff)', 'MAIN_CURSEDSTAFF_CRYSTAL', 'SCHOLAR', 'SCHOLAR', 'SCHOLAR', 'MORGANA'),
+  build('Báculo Demoníaco (Demonic Staff)', '2H_DEMONICSTAFF', 'SCHOLAR', 'SCHOLAR', 'SCHOLAR', 'MORGANA'),
+  build('Cráneo Maldito (Cursed Skull)', '2H_SKULLORB_HELL', 'FIEND', 'FIEND', 'FIEND', 'DEMON'),
+];
+
+/* Catálogo completo de armas de la herramienta: junta las de los 7 roles de
+   Composición + las extra de arriba, sin duplicados. Es lo que se muestra
+   al editar el arma de cualquier jugador — tanto en Solitario como en
+   cualquier build de Composición/Avalón — ya que ahí no hay restricción
+   por rol, se ofrecen todas, agrupadas por familia.
+   El identificador de cada arma para deduplicar/buscar es SIEMPRE
+   `w.name` (nunca `w.u`): varias entradas comparten el mismo ítem interno
+   de Albion (`u`) pero representan variantes de build con nombre propio y
+   armadura por defecto distinta — por ejemplo "Báculo de Fuego" y "Báculo
+   de Fuego (Flamígero) (Azul/Dorado)" son, para el juego, el mismo ítem
+   (MAIN_FIRESTAFF), pero acá son dos opciones separadas a propósito. Si se
+   dedupicara por `u` se perdería una de las dos (eso es lo que pasaba con
+   el Flamígero antes de este arreglo) y además, al haber dos armas con la
+   misma `u`, buscar "la elegida" por `u` sería ambiguo — por eso todo el
+   resto del código (el selector de arma, el ícono del muñeco, Solitario)
+   también busca y compara por `name`, no por `u`. */
+function buildMasterWeaponCatalog() {
+  const seen = new Set();
+  const list = [];
+  ROLE_KEYS.forEach(rk => {
+    ROLES[rk].weapons.forEach(w => {
+      if (seen.has(w.name)) return;
+      seen.add(w.name);
+      list.push(w);
+    });
+  });
+  SOLO_EXTRA_WEAPONS.forEach(w => {
+    if (seen.has(w.name)) return;
+    seen.add(w.name);
+    list.push(w);
+  });
+  return list;
+}
+const MASTER_WEAPONS = buildMasterWeaponCatalog();
+
+function weaponPickerGroups() {
+  const byLabel = {};
+  MASTER_WEAPONS.forEach(w => {
+    const fam = weaponFamilyOf(w.u);
+    if (!byLabel[fam.label]) byLabel[fam.label] = {};
+    byLabel[fam.label][w.name] = [w.name, w.u];
+  });
+  const orderedLabels = [...WEAPON_FAMILIES.map(f => f.label), WEAPON_FAMILY_MOUNT.label, WEAPON_FAMILY_OTHER.label];
+  const seenLabels = new Set();
+  const groups = [];
+  orderedLabels.forEach(label => {
+    if (seenLabels.has(label)) return;
+    seenLabels.add(label);
+    if (byLabel[label]) groups.push({ label, entries: byLabel[label] });
+  });
+  return groups;
+}
+const WEAPON_PICKER_GROUPS = weaponPickerGroups();
+
+/* Devuelve el índice del arma dentro de un rol dado su nombre exacto (para plantillas) */
+function widx(role, name) {
+  const i = ROLES[role].weapons.findIndex(w => w.name === name);
+  return i >= 0 ? i : 0;
+}
+
+/* ---------------- Plantillas por modalidad ----------------
+   Cada plantilla define, en orden, el rol (y opcionalmente el arma exacta)
+   de cada slot sugerido. El usuario puede agregar/quitar/cambiar libremente.
+------------------------------------------------------------- */
+function tpl(role, name, count) {
+  const arr = [];
+  for (let i = 0; i < count; i++) arr.push({ role, weaponIdx: name ? widx(role, name) : 0 });
+  return arr;
+}
+function flat(...groups) { return [].concat(...groups); }
+
+const TEMPLATES = {
+  zvz: {
+    estandar: flat(
+      tpl('caller', null, 1),
+      tpl('tanque', 'Martillo Gigante', 2),
+      tpl('sanador', 'Báculo Sagrado', 6),
+      tpl('soporte', 'Báculo Enigmático', 3),
+      tpl('dps_distancia', 'Arco', 3),
+      tpl('dps_mago', 'Báculo de Fuego', 5),
+    ), // 20 — doctrina "ball" estándar
+    kite: flat(
+      tpl('caller', 'Báculo Terrúnico — "Golem" (Earthrune Staff)', 1),
+      tpl('tanque', 'Maza', 1),
+      tpl('tanque', 'Hacha de la Justicia (Hand of Justice)', 1),
+      tpl('tanque', 'Guardapactos (Oathkeepers)', 1),
+      tpl('soporte', 'Maza de Lecho de Roca (Bedrock — Support)', 2),
+      tpl('soporte', 'Báculo Arraigado (Rootbound)', 1),
+      tpl('soporte', 'Locus Malévolo (Malevolent Locus)', 1),
+      tpl('sanador', 'Báculo Sagrado + Bruma del Anciano', 2),
+      tpl('sanador', 'Báculo Maldiviviente (Lifecurse)', 1),
+      tpl('sanador', 'Báculo de la Plaga (Blight)', 1),
+      tpl('dps_melee', 'Espada Tallada (Carving Sword) ⭐S-Tier', 1),
+      tpl('dps_melee', 'Báculo Acechador (Prowling Staff) ⭐S-Tier', 1),
+      tpl('dps_melee', 'Báculo de Doble Filo (Double Bladed Staff) ⭐S-Tier', 1),
+      tpl('dps_melee', 'Canción del Alba (Dawnsong)', 1),
+      tpl('dps_distancia', 'Arco Lamentoso (Wailing Bow)', 3),
+      tpl('dps_mago', 'Prisma de Escarcha Eterna (Permafrost)', 1),
+    ), // 20 — meta ago-2026: movilidad y rango, hostiga con Wailing Bow/Carving Sword y se retira sin comprometerse al cuerpo a cuerpo. Caller: Golem o Maza
+    brawl: flat(
+      tpl('caller', 'Maza (Engage Caller — Kite/Brawl)', 1),
+      tpl('tanque', 'Maza + Bruma del Anciano (Brawl)', 2),
+      tpl('tanque', 'Hacha de la Justicia (Hand of Justice)', 1),
+      tpl('sanador', 'Báculo Sagrado', 2),
+      tpl('sanador', 'Gran Báculo Sagrado', 2),
+      tpl('sanador', 'Báculo Sagrado + Bruma del Anciano', 1),
+      tpl('sanador', 'Báculo Caído (Redención)', 1),
+      tpl('soporte', 'Locus Malévolo (Malevolent Locus)', 1),
+      tpl('soporte', 'Báculo Enigmático', 1),
+      tpl('soporte', 'Gran Báculo Arcano', 1),
+      tpl('dps_melee', 'Espada Tallada (Carving Sword) ⭐S-Tier', 1),
+      tpl('dps_melee', 'Guanteletes con Púas (Spiked Gauntlets)', 1),
+      tpl('dps_melee', 'Guadaña Infernal (Infernal Scythe)', 1),
+      tpl('dps_melee', 'Desangradora (Bloodletter)', 1),
+      tpl('dps_melee', 'Báculo de Doble Filo (Double Bladed Staff) ⭐S-Tier', 1),
+      tpl('dps_mago', 'Báculo de Condenación (Damnation)', 2),
+    ), // 20 — meta ago-2026: combate cerrado y sostenido, todo el grupo pegado sin retirarse. Caller: Maza engage
+  },
+  grupal: flat(
+    tpl('caller', 'Maza Incubo (Incubus Mace) (Azul/Dorado)', 1),
+    tpl('sanador', 'Báculo Sagrado (Azul/Dorado)', 1),
+    tpl('dps_mago', 'Báculo de Fuego (Flamígero) (Azul/Dorado)', 1),
+    tpl('dps_mago', 'Invocador Oscuro (Shadowcaller) (Azul/Dorado)', 1),
+    tpl('soporte', 'Prisma de Escarcha Eterna (Permafrost) (Azul/Dorado)', 1),
+    tpl('dps_distancia', 'Arco de Badon (Bow of Badon) (Azul/Dorado)', 1),
+  ), // 6 — comp fija "Azul/Dorado" para contenido Grupales
+  estatica: flat(
+    tpl('caller', 'Lanza', 1), // Estática: rol de pull/scout — Lanza da movilidad + escudo para tanquear pulls
+    tpl('tanque', 'Martillo Gigante', 1),
+    tpl('sanador', 'Báculo Sagrado', 2),
+    tpl('soporte', 'Báculo Enigmático', 1),
+    tpl('dps_distancia', 'Arco', 2),
+    tpl('dps_mago', 'Báculo de Fuego', 1),
+    tpl('dps_melee', 'Mandoble', 1),
+  ), // 9
+  avalon_dorado: flat(
+    tpl('tanque', 'Martillo-Lanza (Polehammer) (Azul/Dorado)', 1),
+    tpl('sanador', 'Báculo Caído (Redención) (Azul/Dorado)', 1),
+    tpl('soporte', 'Prisma de Escarcha Eterna (Permafrost) (Azul/Dorado)', 1),
+    tpl('dps_mago', 'Báculo de Fuego Salvaje (Wildfire Staff) (Azul/Dorado)', 1),
+    tpl('dps_mago', 'Invocador Oscuro (Shadowcaller) (Azul/Dorado)', 1),
+    tpl('dps_distancia', 'Arco de Badon (Bow of Badon) (Azul/Dorado)', 1),
+    tpl('dps_melee', 'Desangradora (Bloodletter) (Azul/Dorado)', 1),
+  ), // 7 — comp de gremio para abrir Cofres Dorados en los Caminos Avalonianos
+  avalon_azul: flat(
+    tpl('tanque', 'Maza de Lecho de Roca (Bedrock Mace)', 1),
+    tpl('sanador', 'Báculo Sagrado (Azul/Dorado)', 1),
+    tpl('dps_distancia', 'Perforaniebla (Mistpiercer) (Azul/Dorado)', 1),
+    tpl('dps_mago', 'Báculo de Fuego (Flamígero) (Azul/Dorado)', 1),
+  ), // 4 — escuadra reducida para Cofres Azules (subido de dúo a 4 jugadores)
+};
+
+const ZVZ_VARIANTS = {
+  estandar: { label: 'Estándar', icon: '⚖️', desc: 'Doctrina "ball" equilibrada: sanación pesada + daño mixto.' },
+  kite: { label: 'Kite', icon: '🏃', desc: 'Meta ago-2026 (Radiant Wilds): movilidad y rango — Carving Sword sigue confirmado S-Tier; los arcos (incluido Wailing Bow) vienen de un parche de nerfeos, así que conviene confirmar su peso real contra el parche vigente. Cuidado con el sistema de Disarray si el kite abusa de monturas de batalla.' },
+  brawl: { label: 'Brawl', icon: '🥊', desc: 'Meta ago-2026 (Radiant Wilds): combate cerrado y sostenido — el grupo se pega y satura con Carving Sword, Double Bladed Staff e Infernal Scythe (las tres siguen confirmadas S-Tier).' },
+};
+
+const MODES = {
+  zvz: { label: 'ZVZ', icon: '⚔️', desc: 'Grupos de 20 — hasta 4 grupos por evento', max: 20 },
+  grupal: { label: 'Grupales', icon: '🛡️', desc: 'Comp fija "Azul/Dorado" para contenido en grupo — 6 jugadores', max: 6 },
+  estatica: { label: 'Estática', icon: '⭐', desc: 'Mazmorra estática de gremio — hasta 9 jugadores', max: 9 },
+  solo_pve: { label: 'PvE', icon: '🌲', desc: 'Builds para jugar en solitario contra el entorno — farmeo, mazmorras solo y recolección con defensa. Meta ago-2026 (Radiant Wilds), estimaciones propias en base a guías de la comunidad — no son datos oficiales.', max: null },
+  solo_pvp: { label: 'PvP', icon: '🩸', desc: 'Builds para ganqueo, duelos y roaming en solitario. Meta ago-2026 (Radiant Wilds), verificado contra los parches de balance hasta jun-2026 — el parche de jul-2026 no se pudo confirmar en detalle.', max: null },
+  avalon_azul: { label: 'Azul', icon: '🔵', desc: 'Cofres Azules de los Caminos Avalonianos — contenido en escuadra reducida (hasta 4), botín de rareza intermedia. Meta ago-2026 (Radiant Wilds), estimación propia en base a guías de la comunidad — no son datos oficiales.', max: 4 },
+  avalon_dorado: { label: 'Dorado', icon: '🟡', desc: 'Cofre Dorado de los Caminos Avalonianos — jefe de mundo abierto, conviene grupo de gremio (7) para abrirlo rápido. Meta ago-2026 (Radiant Wilds), estimación propia en base a guías de la comunidad — no son datos oficiales.', max: 7 },
+  balance: { label: 'Balance', icon: '💰', desc: 'Saldo de plata por jugador — sumá, restá y consultá el balance de cada miembro del gremio.', max: null },
+};
+
+/* ---------------- Build en solitario (PvE / PvP) ----------------
+   Una sola tarjeta por pestaña, pensada como punto de partida totalmente
+   editable: arma, casco, capa, pecho, off-hand y botas se pueden cambiar
+   tocándolos, eligiendo entre TODAS las armas/piezas de la herramienta
+   (agrupadas por familia/material), no solo las de la build sugerida. El
+   gráfico de estadísticas se recalcula en vivo según lo que quede puesto —
+   no es un valor fijo por build. */
+const SOLO_STATS_LABELS = {
+  dano: 'Daño',
+  supervivencia: 'Supervivencia',
+  movilidad: 'Movilidad',
+  sustain: 'Sustain',
+  utilidad: 'Utilidad',
+};
+const SOLO_ACCENT = { solo_pve: '#2e9e5b', solo_pvp: '#c81e3a' };
+
+function soloBuild(id, label, icon, weaponBuild, desc) {
+  return { id, label, icon, weapon: weaponBuild, desc };
+}
+
+const SOLO_BUILDS = {
+  solo_pve: [
+    soloBuild('pve_default', 'Build de PvE en solitario', '🌲',
+      build('Báculo Acechador (Prowling Staff)', '2H_SHAPESHIFTER_SET1', 'ASSASSIN', 'HELLION', 'STALKER', 'MARTLOCK'),
+      'Punto de partida para jugar solo contra el entorno — junta mobs, aplica daño sostenido y se transforma para reposicionarse. Tocá el arma o cualquier pieza para armar tu propia build: el gráfico de abajo se recalcula según lo que elijas.'),
+  ],
+  solo_pvp: [
+    soloBuild('pvp_default', 'Build de PvP en solitario', '🩸',
+      build('Desangradora (Bloodletter)', 'MAIN_RAPIER_MORGANA', 'ASSASSIN', 'ASSASSIN', 'ASSASSIN', 'THETFORD', ['Antorcha', 'OFF_TORCH']),
+      'Punto de partida para ganqueo/duelos en solitario — dash largo y ejecución contra objetivos con poca vida. Tocá el arma o cualquier pieza para armar tu propia build: el gráfico de abajo se recalcula según lo que elijas.'),
+  ],
+};
+const SOLO_MODES = ['solo_pve', 'solo_pvp'];
+
+let uidCounter = 1;
+function uid() { return 'slot_' + (uidCounter++) + '_' + Math.random().toString(36).slice(2, 7); }
+
+function buildSlotsFromTemplate(entries) {
+  return entries.map(e => ({ id: uid(), role: e.role, weaponIdx: e.weaponIdx || 0, player: '', gear: {} }));
+}
+
+/* Pieza efectiva a mostrar/usar para un slot: si el jugador editó esa pieza
+   a mano (slot.gear[type]) se usa esa; si no, se usa la de la build por
+   defecto. 'NONE' es un override explícito para "sin off-hand". */
+function effectivePiece(slot, weapon, type) {
+  const override = slot.gear && slot.gear[type];
+  if (override === 'NONE') return null;
+  if (override) {
+    const dict = type === 'helm' ? HELM : type === 'chest' ? CHEST : type === 'boots' ? BOOTS : type === 'cape' ? CAPE : type === 'food' ? FOOD : OFF;
+    return dict[override] || weapon[type];
+  }
+  return weapon[type];
+}
+
+/* ---------------- Builds guardadas por modalidad de composición ----------------
+   Cada modalidad de composición (zvz/grupal/estatica/avalon_azul/avalon_dorado)
+   guarda una LISTA de builds con nombre propio (no una sola) — así cualquiera
+   puede armar "Build de Diego", editarla, y crear otra "Build de Barto" sin
+   perder la primera. `active` indica cuál de la lista se está mostrando. Para
+   ZVZ las builds de la lista se usan a la vez (son los distintos grupos de un
+   mismo evento); para el resto son variantes alternativas, no simultáneas. */
+const COMPOSABLE_MODES = ['zvz', 'grupal', 'estatica', 'avalon_azul', 'avalon_dorado'];
+function defaultTemplateFor(mode) {
+  if (mode === 'zvz') return TEMPLATES.zvz[state.zvzVariant];
+  return TEMPLATES[mode];
+}
+function defaultCompName(mode) {
+  const label = mode === 'zvz' ? 'Grupo' : (MODES[mode] ? MODES[mode].label : 'Build');
+  const list = state.comps[mode].list;
+  let n = list.length + 1;
+  let name = `${label} ${n}`;
+  while (list.some(e => e.name === name)) { n++; name = `${label} ${n}`; }
+  return name;
+}
+function newCompEntry(mode, name) {
+  return { id: uid(), name: name || defaultCompName(mode), roster: buildSlotsFromTemplate(defaultTemplateFor(mode)) };
+}
+
+/* ---------------- Estado ---------------- */
+const state = {
+  guildName: 'PVPX',
+  mode: 'zvz',
+  /* Última modalidad de composición usada (zvz/grupal/estatica), para volver
+     a ella al salir de la pestaña Balance o Solitario. */
+  lastCompMode: 'zvz',
+  /* Última sub-pestaña de Solitario usada (solo_pve/solo_pvp). */
+  lastSoloMode: 'solo_pve',
+  /* Última sub-pestaña de Avalón usada (avalon_azul/avalon_dorado). */
+  lastAvalonMode: 'avalon_azul',
+  zvzVariant: 'estandar',
+  comps: {
+    zvz: { active: 0, list: [{ id: uid(), name: 'Grupo 1', roster: buildSlotsFromTemplate(TEMPLATES.zvz.estandar) }] },
+    grupal: { active: 0, list: [{ id: uid(), name: 'Grupal 1', roster: buildSlotsFromTemplate(TEMPLATES.grupal) }] },
+    estatica: { active: 0, list: [{ id: uid(), name: 'Estática 1', roster: buildSlotsFromTemplate(TEMPLATES.estatica) }] },
+    avalon_azul: { active: 0, list: [{ id: uid(), name: 'Azul 1', roster: buildSlotsFromTemplate(TEMPLATES.avalon_azul) }] },
+    avalon_dorado: { active: 0, list: [{ id: uid(), name: 'Dorado 1', roster: buildSlotsFromTemplate(TEMPLATES.avalon_dorado) }] },
+  },
+  /* Balance de plata por jugador: cada uno con su saldo actual y su
+     historial de movimientos (altas/bajas) con fecha y nota opcional. */
+  balances: [],
+  /* Overrides de equipamiento por pieza para las builds en solitario,
+     igual que slot.gear pero indexado por el id de la build (no hay roster
+     acá, son tarjetas de referencia fijas). */
+  soloOverrides: {},
+};
+
+/* ---------------- Balance de jugadores ---------------- */
+let balUidCounter = 1;
+function balUid() { return 'bal_' + (balUidCounter++) + '_' + Math.random().toString(36).slice(2, 7); }
+
+function fmtMoney(n) {
+  const sign = n < 0 ? '-' : '';
+  return sign + '$' + Math.abs(Math.round(n)).toLocaleString('es-ES');
+}
+
+function findBalancePlayer(id) {
+  return state.balances.find(p => p.id === id);
+}
+
+function addBalancePlayer(name) {
+  const clean = (name || '').trim();
+  if (!clean) return null;
+  const existing = state.balances.find(p => p.name.toLowerCase() === clean.toLowerCase());
+  if (existing) return existing;
+  const p = { id: balUid(), name: clean, balance: 0, history: [] };
+  state.balances.push(p);
+  return p;
+}
+
+function addBalanceMovement(playerId, delta, note) {
+  const p = findBalancePlayer(playerId);
+  if (!p || !delta) return;
+  p.balance += delta;
+  p.history.unshift({ id: balUid(), delta, note: (note || '').trim(), ts: Date.now() });
+}
+
+function removeBalancePlayer(playerId) {
+  state.balances = state.balances.filter(p => p.id !== playerId);
+}
+
+function currentCompBucket() {
+  return state.comps[state.mode];
+}
+function currentCompEntry() {
+  const bucket = currentCompBucket();
+  return bucket ? bucket.list[bucket.active] : null;
+}
+function currentRoster() {
+  const entry = currentCompEntry();
+  return entry ? entry.roster : [];
+}
+function setCurrentRoster(newRoster) {
+  const entry = currentCompEntry();
+  if (entry) entry.roster = newRoster;
+}
+
+/* ---------------- Render: barra de modos ---------------- */
+/* Cuatro secciones de primer nivel — "Composición" (agrupa ZVZ/Grupales/
+   Estática), "Solitario" (agrupa builds PvE/PvP para un solo jugador),
+   "Avalón" (agrupa las comps Azul/Dorado de los Caminos Avalonianos) y
+   "Balance" — en un único menú. Composición, Solitario y Avalón tienen un
+   segundo selector más chico para elegir la modalidad específica. */
+const COMP_MODES = ['zvz', 'grupal', 'estatica'];
+const AVALON_MODES = ['avalon_azul', 'avalon_dorado'];
+const SECTIONS = {
+  comp: { label: 'Composición', icon: '📋', subModes: COMP_MODES, lastKey: 'lastCompMode', fallback: 'zvz' },
+  solo: { label: 'Solitario', icon: '🗡️', subModes: SOLO_MODES, lastKey: 'lastSoloMode', fallback: 'solo_pve' },
+  avalon: { label: 'Avalón', icon: '🔷', subModes: AVALON_MODES, lastKey: 'lastAvalonMode', fallback: 'avalon_azul' },
+  balance: { label: 'Balance', icon: '💰' },
+};
+function currentSection() {
+  if (state.mode === 'balance') return 'balance';
+  if (SOLO_MODES.includes(state.mode)) return 'solo';
+  if (AVALON_MODES.includes(state.mode)) return 'avalon';
+  return 'comp';
+}
+
+function renderModeBar() {
+  const bar = document.getElementById('modeBar');
+  bar.innerHTML = '';
+
+  const menu = document.createElement('div');
+  menu.className = 'mode-menu';
+  for (const key of Object.keys(SECTIONS)) {
+    const s = SECTIONS[key];
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'mode-item' + (currentSection() === key ? ' active' : '');
+    item.innerHTML = `<span>${s.icon}</span><span>${s.label}</span>`;
+    item.onclick = () => {
+      if (currentSection() === key) return;
+      if (key === 'balance') {
+        state.mode = 'balance';
+      } else {
+        state.mode = state[s.lastKey] || s.fallback;
+      }
+      renderAll();
+    };
+    menu.appendChild(item);
+  }
+  bar.appendChild(menu);
+
+  const activeSection = SECTIONS[currentSection()];
+  if (activeSection && activeSection.subModes) {
+    const sub = document.createElement('div');
+    sub.className = 'submode-menu';
+    activeSection.subModes.forEach(key => {
+      const m = MODES[key];
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'submode-item' + (state.mode === key ? ' active' : '');
+      item.innerHTML = `<span>${m.icon}</span><span>${m.label}</span>`;
+      item.onclick = () => { state.mode = key; state[activeSection.lastKey] = key; renderAll(); };
+      sub.appendChild(item);
+    });
+    bar.appendChild(sub);
+  }
+
+  const desc = document.createElement('div');
+  desc.className = 'mode-desc';
+  desc.textContent = MODES[state.mode].desc;
+  bar.appendChild(desc);
+}
+
+function buildZvzVariantBar() {
+  const wrap = document.createElement('div');
+  wrap.className = 'group-bar';
+  const label = document.createElement('div');
+  label.style.cssText = 'font-size:12px;color:var(--grey);align-self:center;margin-right:4px;';
+  label.textContent = 'Doctrina:';
+  wrap.appendChild(label);
+  for (const key of Object.keys(ZVZ_VARIANTS)) {
+    const v = ZVZ_VARIANTS[key];
+    const tab = document.createElement('div');
+    tab.className = 'group-tab' + (state.zvzVariant === key ? ' active' : '');
+    tab.title = v.desc;
+    tab.innerHTML = `${v.icon} ${v.label}`;
+    tab.onclick = () => {
+      if (state.zvzVariant === key) return;
+      const ok = confirm(`¿Aplicar la doctrina "${v.label}" a TODOS los grupos ZVZ guardados? Se perderán los nombres de jugador asignados (los nombres de las builds se mantienen).`);
+      if (!ok) return;
+      state.zvzVariant = key;
+      state.comps.zvz.list.forEach(entry => { entry.roster = buildSlotsFromTemplate(TEMPLATES.zvz[key]); });
+      renderPanel();
+    };
+    wrap.appendChild(tab);
+  }
+  const descTag = document.createElement('div');
+  descTag.style.cssText = 'font-size:12px;color:var(--grey);align-self:center;margin-left:6px;font-style:italic;';
+  descTag.textContent = ZVZ_VARIANTS[state.zvzVariant].desc;
+  wrap.appendChild(descTag);
+  return wrap;
+}
+
+/* Agrega/quita un slot de jugador de la lista actual. Se usan tanto desde
+   la tarjeta "+ Agregar jugador" como desde los botones rápidos +/- del
+   encabezado, para cubrir el caso de eventos donde no se completan todos
+   los roles hasta el máximo establecido. */
+function addPlayerSlot() {
+  const max = state.mode === 'zvz' ? 20 : MODES[state.mode].max;
+  const r = currentRoster();
+  if (r.length >= max) { showToast(`Ya alcanzaste el máximo de ${max} jugadores`); return; }
+  r.push({ id: uid(), role: 'dps_melee', weaponIdx: 0, player: '', gear: {} });
+  setCurrentRoster(r);
+  renderPanel();
+}
+function removeLastPlayerSlot() {
+  const r = currentRoster();
+  if (!r.length) { showToast('No hay jugadores para quitar'); return; }
+  r.pop();
+  setCurrentRoster(r);
+  renderPanel();
+}
+
+/* ---------------- Render: panel principal ---------------- */
+function renderPanel() {
+  saveToStorage();
+  const panel = document.getElementById('panel');
+  panel.innerHTML = '';
+
+  if (state.mode === 'balance') {
+    panel.appendChild(buildBalancePanel());
+    return;
+  }
+
+  if (SOLO_MODES.includes(state.mode)) {
+    panel.appendChild(buildSoloPanel());
+    return;
+  }
+
+  panel.appendChild(buildSummaryStrip());
+
+  if (state.mode === 'zvz') panel.appendChild(buildZvzVariantBar());
+  panel.appendChild(buildCompTabBar());
+
+  const roster = currentRoster();
+  const max = state.mode === 'zvz' ? 20 : MODES[state.mode].max;
+
+  const head = document.createElement('div');
+  head.className = 'roster-head';
+  const activeEntry = currentCompEntry();
+  const title = state.mode === 'zvz'
+    ? `${activeEntry.name} · ${ZVZ_VARIANTS[state.zvzVariant].label}`
+    : `${MODES[state.mode].label} — ${activeEntry.name}`;
+  head.innerHTML = `
+    <h2>${title}</h2>
+    <div class="fill-bar-wrap"><div class="fill-bar" style="width:${Math.min(100, roster.length / max * 100)}%"></div></div>
+    <div style="font-size:13px;color:var(--grey);">${roster.length} / ${max} jugadores</div>
+  `;
+  const quickControls = document.createElement('div');
+  quickControls.className = 'quick-controls';
+  quickControls.innerHTML = `
+    <button type="button" class="small ghost" id="quickRemove" title="Quitar el último jugador de la lista">− Quitar</button>
+    <button type="button" class="small ghost" id="quickAdd" title="Agregar un jugador extra a la lista">+ Agregar</button>
+  `;
+  head.appendChild(quickControls);
+  panel.appendChild(head);
+  head.querySelector('#quickAdd').onclick = addPlayerSlot;
+  head.querySelector('#quickRemove').onclick = removeLastPlayerSlot;
+
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  roster.forEach((slot, idx) => grid.appendChild(buildSlotCard(slot, idx)));
+
+  if (roster.length < max) {
+    const addCard = document.createElement('button');
+    addCard.className = 'add-slot-card';
+    addCard.innerHTML = '+ Agregar jugador';
+    addCard.onclick = addPlayerSlot;
+    grid.appendChild(addCard);
+  }
+  panel.appendChild(grid);
+
+  panel.appendChild(buildLegend());
+}
+
+function buildSummaryStrip() {
+  const wrap = document.createElement('div');
+  wrap.className = 'summary-strip';
+
+  let roster, totalGroups = null;
+  if (state.mode === 'zvz') {
+    roster = state.comps.zvz.list.flatMap(e => e.roster);
+    totalGroups = state.comps.zvz.list.length;
+  } else {
+    roster = currentRoster();
+  }
+
+  const counts = {};
+  roster.forEach(s => counts[s.role] = (counts[s.role] || 0) + 1);
+  const filled = roster.filter(s => s.player.trim()).length;
+
+  const stats = [];
+  if (totalGroups !== null) {
+    stats.push([`Grupos ZVZ`, totalGroups]);
+    stats.push([`Jugadores totales`, roster.length]);
+  } else {
+    stats.push([`Jugadores`, roster.length]);
+  }
+  stats.push([`Nombres asignados`, `${filled}/${roster.length}`]);
+  for (const key of ROLE_KEYS) {
+    if (counts[key]) stats.push([ROLES[key].label, counts[key]]);
+  }
+
+  stats.forEach(([label, val]) => {
+    const s = document.createElement('div');
+    s.className = 'stat';
+    s.innerHTML = `<b>${val}</b>${label}`;
+    wrap.appendChild(s);
+  });
+  return wrap;
+}
+
+/* Barra de builds guardadas — genérica para las 5 modalidades de composición
+   (ZVZ/Grupales/Estática/Avalón Azul/Avalón Dorado). Cada pestaña es una
+   build con nombre propio (editable con ✎), que se puede crear, cambiar y
+   eliminar sin perder las demás. Para ZVZ se mantiene el tope histórico de
+   4 grupos por evento; el resto no tiene límite. */
+function buildCompTabBar() {
+  const wrap = document.createElement('div');
+  wrap.className = 'group-bar';
+  const mode = state.mode;
+  const bucket = state.comps[mode];
+  const max = mode === 'zvz' ? 20 : MODES[mode].max;
+
+  bucket.list.forEach((entry, i) => {
+    const tab = document.createElement('div');
+    tab.className = 'group-tab' + (bucket.active === i ? ' active' : '');
+    tab.title = 'Tocá para ver esta build — ✎ para renombrarla';
+
+    const nameEl = document.createElement('span');
+    nameEl.textContent = entry.name;
+    tab.appendChild(nameEl);
+
+    const countEl = document.createElement('span');
+    countEl.className = 'count';
+    countEl.textContent = `${entry.roster.length}/${max}`;
+    tab.appendChild(countEl);
+
+    const renameBtn = document.createElement('button');
+    renameBtn.type = 'button';
+    renameBtn.className = 'tab-rename-btn';
+    renameBtn.textContent = '✎';
+    renameBtn.title = 'Renombrar esta build';
+    renameBtn.onclick = (e) => {
+      e.stopPropagation();
+      const nn = prompt('Nombre para esta build:', entry.name);
+      if (nn === null) return;
+      const clean = nn.trim();
+      if (clean) { entry.name = clean; renderPanel(); }
+    };
+    tab.appendChild(renameBtn);
+
+    tab.onclick = () => { if (bucket.active !== i) { bucket.active = i; renderPanel(); } };
+    wrap.appendChild(tab);
+  });
+
+  if (mode !== 'zvz' || bucket.list.length < 4) {
+    const addBtn = document.createElement('button');
+    addBtn.className = 'small ghost';
+    addBtn.textContent = '+ Nueva build';
+    addBtn.onclick = () => {
+      const suggested = defaultCompName(mode);
+      const nn = prompt('Nombre para la nueva build:', suggested);
+      if (nn === null) return;
+      bucket.list.push(newCompEntry(mode, nn.trim() || suggested));
+      bucket.active = bucket.list.length - 1;
+      renderPanel();
+    };
+    wrap.appendChild(addBtn);
+  }
+  if (bucket.list.length > 1) {
+    const delBtn = document.createElement('button');
+    delBtn.className = 'small ghost';
+    delBtn.textContent = '🗑 Eliminar build actual';
+    delBtn.onclick = () => {
+      if (!confirm(`¿Eliminar la build "${bucket.list[bucket.active].name}"? Esta acción no se puede deshacer.`)) return;
+      bucket.list.splice(bucket.active, 1);
+      bucket.active = Math.max(0, bucket.active - 1);
+      renderPanel();
+    };
+    wrap.appendChild(delBtn);
+  }
+  return wrap;
+}
+
+/* Colores de acento por rol — un tono claramente distinto por rol (ninguno se
+   repite) para que cada tarjeta se identifique de un vistazo, manteniendo
+   luminosidad media para que se lea bien tanto en tema oscuro como claro. */
+const ROLE_ACCENT = {
+  caller: '#d4a017',        // dorado — líder / IC
+  tanque: '#3d7dca',        // azul acero — primera línea / escudo
+  sanador: '#2e9e5b',       // verde esmeralda — sanación
+  soporte: '#9b59b6',       // violeta — utilidad / CC
+  dps_distancia: '#1fada0', // turquesa — daño a distancia
+  dps_mago: '#c9327a',      // magenta — magia
+  dps_melee: '#c81e3a',     // rojo carmesí — cuerpo a cuerpo
+};
+
+/* Recorta el nombre de un ítem a su forma en español para mostrar debajo del
+   ícono: quita anotaciones en inglés entre paréntesis y etiquetas de tier
+   (ej. '⭐S-Tier') que se agregan como referencia meta, pero conserva el
+   nombre completo (con el inglés) en el atributo title/tooltip y en los
+   selects, donde sí es útil para buscar builds de guías en inglés. */
+function shortEsName(name) {
+  if (!name) return name;
+  return name.split(' (')[0].split('⭐')[0].trim();
+}
+
+/* Una "casilla" del muñeco de equipo (paperdoll): ícono grande + etiqueta de
+   tipo de slot + nombre del ítem en español debajo, imitando cómo Albion
+   muestra el equipo puesto sobre el personaje. `piece` es [nombre, sufijo]
+   o null si no aplica. Si se pasa `editable`, la casilla se puede clickear
+   para cambiar esa pieza puntual del jugador (independiente de la build). */
+function dollSlot(piece, fallbackEmoji, tag, extraClass, editable) {
+  const el = document.createElement('div');
+  el.className = 'doll-slot ' + extraClass + (piece ? ' filled' : ' empty') + (editable ? ' editable' : '');
+
+  const iconBox = document.createElement('div');
+  iconBox.className = 'doll-icon-box';
+  iconBox.innerHTML = `<span class="fallback">${fallbackEmoji}</span>`;
+
+  const label = document.createElement('div');
+  label.className = 'doll-label';
+  const tagEl = document.createElement('span');
+  tagEl.className = 'doll-tag';
+  tagEl.textContent = tag;
+  const nameEl = document.createElement('span');
+  nameEl.className = 'doll-name';
+  nameEl.textContent = piece ? shortEsName(piece[0]) : '—';
+  label.appendChild(tagEl);
+  label.appendChild(nameEl);
+
+  if (piece) {
+    const [name, suffix] = piece;
+    el.title = name;
+    nameEl.title = name;
+    const url = iconUrl(suffix);
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = name;
+      img.onerror = () => { iconBox.innerHTML = `<span class="fallback">${fallbackEmoji}</span>`; };
+      iconBox.innerHTML = '';
+      iconBox.appendChild(img);
+    }
+  }
+  if (editable) {
+    const hint = document.createElement('span');
+    hint.className = 'doll-edit-hint';
+    hint.textContent = '✎';
+    iconBox.appendChild(hint);
+    el.title = (el.title ? el.title + ' — ' : '') + 'Click para cambiar';
+    el.onclick = () => openGearPicker(editable.pieceLabel, editable.catalog, editable.currentKey, editable.allowNone, editable.onPick, editable.showReset !== false);
+  }
+  el.appendChild(iconBox);
+  el.appendChild(label);
+  return el;
+}
+
+/* Construye el muñeco de equipo completo (6 casillas en cruz, como la
+   pantalla de personaje de Albion): arma arriba-izq/centro, casco arriba,
+   capa arriba-der, off-hand der, pecho centro, botas abajo. Casco, capa,
+   pecho, botas y off-hand se pueden editar pieza por pieza haciendo click
+   sobre la casilla, sin importar la build elegida. */
+function buildDoll(weapon, def, slot, weaponEditable) {
+  if (weaponEditable === undefined) weaponEditable = true;
+  const doll = document.createElement('div');
+  doll.className = 'paperdoll';
+
+  // Catálogo de armas para editar el arma principal tocando la casilla —
+  // en tarjetas de roster se ofrece el catálogo COMPLETO de todas las armas
+  // de la herramienta (agrupadas por familia), igual que en Solitario, así
+  // cualquier jugador puede llevar el arma que quiera y no solo las
+  // predeterminadas del rol (mismo criterio que el <select> de abajo). La
+  // elección se guarda en `slot.customWeapon` (objeto de arma completo, o
+  // null para volver al arma por defecto de la build/plantilla, que sigue
+  // viviendo en `slot.weaponIdx` sin tocarse). En tarjetas de Solitario se
+  // pasa directamente un objeto de configuración ya armado (weaponEditable
+  // como objeto en vez de true/false — ver buildSoloCard).
+  let weaponEditableCfg;
+  if (weaponEditable && typeof weaponEditable === 'object') {
+    weaponEditableCfg = weaponEditable;
+  } else if (weaponEditable && ROLES[slot.role]) {
+    weaponEditableCfg = {
+      pieceLabel: 'arma', catalog: WEAPON_PICKER_GROUPS, currentKey: weapon.name, allowNone: false, showReset: true,
+      onPick: (key) => {
+        if (key === null) {
+          slot.customWeapon = null;
+        } else {
+          const found = MASTER_WEAPONS.find(w => w.name === key);
+          if (found) slot.customWeapon = found;
+        }
+        slot.gear = {};
+        renderPanel();
+      },
+    };
+  }
+  const weaponSlot = dollSlot(weapon.u ? [weapon.name, weapon.u] : null, def.icon, 'Arma', 'weapon-slot', weaponEditableCfg);
+  if (!weapon.u) {
+    weaponSlot.classList.remove('empty'); weaponSlot.classList.add('filled');
+    weaponSlot.title = weapon.name + ' — Click para cambiar';
+    const nm = weaponSlot.querySelector('.doll-name');
+    if (nm) { nm.textContent = shortEsName(weapon.name); nm.title = weapon.name; }
+  }
+  const tierBadge = document.createElement('span');
+  tierBadge.className = 'tier-badge';
+  tierBadge.textContent = TIER;
+  weaponSlot.querySelector('.doll-icon-box').appendChild(tierBadge);
+  doll.appendChild(weaponSlot);
+
+  const onPickFor = (type) => (key) => {
+    slot.gear = slot.gear || {};
+    if (key === null) delete slot.gear[type];
+    else slot.gear[type] = key;
+    renderPanel();
+  };
+
+  const helmPiece = effectivePiece(slot, weapon, 'helm');
+  const capePiece = effectivePiece(slot, weapon, 'cape');
+  const chestPiece = effectivePiece(slot, weapon, 'chest');
+  const offPiece = effectivePiece(slot, weapon, 'off');
+  const bootsPiece = effectivePiece(slot, weapon, 'boots');
+  const foodPiece = effectivePiece(slot, weapon, 'food');
+
+  doll.appendChild(dollSlot(foodPiece, foodPiece ? '🍖' : '—', 'Comida', 'food-slot' + (foodPiece ? '' : ' na'), {
+    pieceLabel: 'comida', catalog: FOOD, currentKey: slot.gear && slot.gear.food, allowNone: true, onPick: onPickFor('food'),
+  }));
+  doll.appendChild(dollSlot(helmPiece, '🪖', 'Casco', 'helm-slot', {
+    pieceLabel: 'casco', catalog: HELM_GROUPED, currentKey: slot.gear && slot.gear.helm, allowNone: false, onPick: onPickFor('helm'),
+  }));
+  doll.appendChild(dollSlot(capePiece, '🧣', 'Capa', 'cape-slot', {
+    pieceLabel: 'capa', catalog: CAPE, currentKey: slot.gear && slot.gear.cape, allowNone: false, onPick: onPickFor('cape'),
+  }));
+  doll.appendChild(dollSlot(chestPiece, '👕', 'Pecho', 'chest-slot', {
+    pieceLabel: 'pieza de pecho', catalog: CHEST_GROUPED, currentKey: slot.gear && slot.gear.chest, allowNone: false, onPick: onPickFor('chest'),
+  }));
+  doll.appendChild(dollSlot(offPiece, offPiece ? '📯' : '—', 'Off-hand', 'off-slot' + (offPiece ? '' : ' na'), {
+    pieceLabel: 'off-hand', catalog: OFF_GROUPED, currentKey: slot.gear && slot.gear.off, allowNone: true, onPick: onPickFor('off'),
+  }));
+  doll.appendChild(dollSlot(bootsPiece, '👢', 'Botas', 'boots-slot', {
+    pieceLabel: 'botas', catalog: BOOTS_GROUPED, currentKey: slot.gear && slot.gear.boots, allowNone: false, onPick: onPickFor('boots'),
+  }));
+  return doll;
+}
+
+function buildSlotCard(slot, idx) {
+  const def = ROLES[slot.role];
+  const weapon = slot.customWeapon || def.weapons[slot.weaponIdx] || def.weapons[0];
+  const accent = ROLE_ACCENT[slot.role] || 'var(--red)';
+
+  const card = document.createElement('div');
+  card.className = 'slot-card';
+  card.style.setProperty('--accent', accent);
+  card.dataset.roleIcon = def.icon;
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-slot';
+  removeBtn.textContent = '✕';
+  removeBtn.title = 'Quitar jugador';
+  removeBtn.onclick = () => {
+    const r = currentRoster();
+    r.splice(idx, 1);
+    setCurrentRoster(r);
+    renderPanel();
+  };
+  card.appendChild(removeBtn);
+
+  // Cinta de rol: identifica el rol de un vistazo y aporta el color distintivo
+  const roleBadge = document.createElement('div');
+  roleBadge.className = 'role-badge';
+  roleBadge.innerHTML = `<span>${def.icon}</span><span>${def.label}</span>`;
+  card.appendChild(roleBadge);
+
+  // Muñeco de equipo — look "personaje equipado" con las 6 piezas
+  card.appendChild(buildDoll(weapon, def, slot));
+
+  const selects = document.createElement('div');
+  selects.className = 'selects';
+
+  const roleSelect = document.createElement('select');
+  roleSelect.className = 'role-select';
+  ROLE_KEYS.forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = `${ROLES[k].icon} ${ROLES[k].label}`;
+    if (k === slot.role) opt.selected = true;
+    roleSelect.appendChild(opt);
+  });
+  roleSelect.onchange = () => {
+    slot.role = roleSelect.value;
+    slot.weaponIdx = 0;
+    slot.customWeapon = null;
+    slot.gear = {};
+    renderPanel();
+  };
+  selects.appendChild(roleSelect);
+
+  // Selector de arma — catálogo COMPLETO (todas las armas del juego,
+  // agrupadas por familia con <optgroup>), no solo las del rol, para poder
+  // armar cualquier build sin restricciones. La opción de arriba de todo
+  // vuelve al arma por defecto de la plantilla (equivalente a "Usar la de
+  // la build" del selector visual en el muñeco).
+  const weaponSelect = document.createElement('select');
+  weaponSelect.className = 'weapon-select';
+  const defaultWeapon = def.weapons[slot.weaponIdx] || def.weapons[0];
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.textContent = `↺ Por defecto (${shortEsName(defaultWeapon.name)})`;
+  weaponSelect.appendChild(defaultOpt);
+  WEAPON_PICKER_GROUPS.forEach(group => {
+    const optgroup = document.createElement('optgroup');
+    optgroup.label = group.label;
+    Object.keys(group.entries).forEach(key => {
+      const [name] = group.entries[key];
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = name;
+      optgroup.appendChild(opt);
+    });
+    weaponSelect.appendChild(optgroup);
+  });
+  weaponSelect.value = slot.customWeapon ? weapon.name : '';
+  weaponSelect.onchange = () => {
+    const key = weaponSelect.value;
+    if (!key) {
+      slot.customWeapon = null;
+    } else {
+      const found = MASTER_WEAPONS.find(w => w.name === key);
+      if (found) slot.customWeapon = found;
+    }
+    slot.gear = {};
+    renderPanel();
+  };
+  selects.appendChild(weaponSelect);
+
+  card.appendChild(selects);
+
+  const playerInput = document.createElement('input');
+  playerInput.className = 'player-input';
+  playerInput.placeholder = 'Nombre del jugador...';
+  playerInput.value = slot.player;
+  playerInput.oninput = () => { slot.player = playerInput.value; };
+  playerInput.addEventListener('blur', () => renderPanel());
+  card.appendChild(playerInput);
+
+  return card;
+}
+
+function buildLegend() {
+  const wrap = document.createElement('div');
+  wrap.className = 'legend';
+  ROLE_KEYS.forEach(k => {
+    const def = ROLES[k];
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.title = def.desc;
+    item.innerHTML = `<span>${def.icon}</span> <b style="color:var(--white)">${def.label}:</b> ${def.desc}`;
+    wrap.appendChild(item);
+  });
+  return wrap;
+}
+
+/* ---------------- Render: pestaña Solitario (PvE / PvP) ---------------- */
+/* La tarjeta de Solitario es un punto de partida totalmente editable, no
+   una referencia fija: además de las piezas de armadura, acá también se
+   puede cambiar el arma principal — eligiendo entre TODAS las armas de la
+   herramienta (agrupadas por familia), no solo las del rol. El override
+   guarda tanto las piezas (igual que slot.gear en el roster) como el arma
+   elegida (null = usar la de la build sugerida). */
+function soloOverrideFor(b) {
+  let ov = state.soloOverrides[b.id];
+  if (!ov || typeof ov.gear !== 'object') ov = { gear: {}, weapon: null };
+  state.soloOverrides[b.id] = ov;
+  return ov;
+}
+
+function buildSoloStatsChart(stats, accent) {
+  const wrap = document.createElement('div');
+  wrap.className = 'solo-stats';
+  Object.keys(SOLO_STATS_LABELS).forEach(key => {
+    const val = Math.max(0, Math.min(10, stats[key] || 0));
+    const row = document.createElement('div');
+    row.className = 'solo-stat-row';
+    row.innerHTML = `
+      <span class="solo-stat-label">${SOLO_STATS_LABELS[key]}</span>
+      <span class="solo-stat-track"><span class="solo-stat-fill" style="width:${val * 10}%;background:linear-gradient(90deg, color-mix(in srgb, ${accent} 55%, transparent), ${accent})"></span></span>
+      <span class="solo-stat-value">${val}/10</span>
+    `;
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
+function buildSoloCard(b, accent) {
+  const card = document.createElement('div');
+  card.className = 'solo-card';
+  card.style.setProperty('--accent', accent);
+
+  const head = document.createElement('div');
+  head.className = 'solo-card-head';
+  head.innerHTML = `<div class="solo-card-title"><span>${b.icon}</span><span>${b.label}</span></div>`;
+  card.appendChild(head);
+
+  const ov = soloOverrideFor(b);
+  const weapon = ov.weapon || b.weapon;
+  const slot = { gear: ov.gear };
+
+  const weaponEditableCfg = {
+    pieceLabel: 'arma', catalog: WEAPON_PICKER_GROUPS, currentKey: weapon.name, allowNone: false, showReset: true,
+    onPick: (key) => {
+      if (key === null) {
+        ov.weapon = null;
+      } else {
+        const found = MASTER_WEAPONS.find(w => w.name === key);
+        if (found) ov.weapon = found;
+      }
+      ov.gear = {};
+      renderPanel();
+    },
+  };
+  card.appendChild(buildDoll(weapon, { icon: b.icon }, slot, weaponEditableCfg));
+
+  const desc = document.createElement('p');
+  desc.className = 'solo-desc';
+  desc.textContent = b.desc;
+  card.appendChild(desc);
+
+  card.appendChild(buildSoloStatsChart(computeSoloStats(weapon, slot), accent));
+
+  return card;
+}
+
+function buildSoloPanel() {
+  const wrap = document.createElement('div');
+  wrap.className = 'solo-panel';
+
+  const note = document.createElement('div');
+  note.className = 'solo-note';
+  note.innerHTML = `⚠ Punto de partida de meta ago-2026 (temporada Radiant Wilds) — no son datos oficiales de Albion Online. Tocá el arma o cualquier pieza para elegir entre TODO el catálogo de la herramienta (agrupado por familia/material): el gráfico de abajo se recalcula según lo que dejes puesto.`;
+  wrap.appendChild(note);
+
+  const grid = document.createElement('div');
+  grid.className = 'solo-grid';
+  const accent = SOLO_ACCENT[state.mode] || 'var(--red)';
+  SOLO_BUILDS[state.mode].forEach(b => grid.appendChild(buildSoloCard(b, accent)));
+  wrap.appendChild(grid);
+
+  return wrap;
+}
+
+/* ---------------- Render: pestaña de Balance ---------------- */
+/* Paleta para los avatares de jugador — un color consistente por nombre
+   (mismo criterio de tono medio que ROLE_ACCENT) para darle más identidad
+   visual a cada fila del balance. */
+const AVATAR_PALETTE = ['#d4a017', '#3d7dca', '#2e9e5b', '#9b59b6', '#1fada0', '#c9327a', '#c81e3a'];
+function avatarColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+}
+function avatarHtml(name, extraClass) {
+  return `<span class="balance-avatar${extraClass ? ' ' + extraClass : ''}" style="background:${avatarColor(name)}">${name.charAt(0).toUpperCase()}</span>`;
+}
+
+function buildBalancePanel() {
+  const wrap = document.createElement('div');
+  wrap.className = 'balance-panel';
+
+  const totalBal = state.balances.reduce((s, p) => s + p.balance, 0);
+  const positiveCount = state.balances.filter(p => p.balance > 0).length;
+
+  const head = document.createElement('div');
+  head.className = 'roster-head';
+  head.innerHTML = `<h2>💰 Balance del gremio</h2>`;
+  wrap.appendChild(head);
+
+  const stats = document.createElement('div');
+  stats.className = 'summary-strip';
+  stats.innerHTML = `
+    <div class="stat"><b>${state.balances.length}</b>Jugadores registrados</div>
+    <div class="stat balance-stat-total"><b>${fmtMoney(totalBal)}</b>Saldo total del gremio</div>
+    <div class="stat"><b>${positiveCount}</b>Con saldo a favor</div>
+  `;
+  wrap.appendChild(stats);
+
+  const addRow = document.createElement('div');
+  addRow.className = 'balance-toolbar';
+  addRow.innerHTML = `
+    <input type="text" id="balNewName" class="player-input" placeholder="Nombre del jugador nuevo...">
+    <button type="button" class="ghost" id="balAddPlayerBtn">+ Agregar jugador al balance</button>
+  `;
+  wrap.appendChild(addRow);
+  const nameInput = addRow.querySelector('#balNewName');
+  const doAddPlayer = () => {
+    const p = addBalancePlayer(nameInput.value);
+    if (p) { renderPanel(); showToast(`${p.name} agregado al balance ✔`); }
+    else showToast('Escribí un nombre válido');
+  };
+  addRow.querySelector('#balAddPlayerBtn').onclick = doAddPlayer;
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAddPlayer(); });
+
+  if (!state.balances.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-msg';
+    empty.textContent = 'Todavía no agregaste jugadores al balance. Sumá el primero arriba para empezar a registrar saldo.';
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  const moveCard = document.createElement('div');
+  moveCard.className = 'balance-move-card';
+  const playerOptions = state.balances.map(p => `<option value="${p.id}">${p.name} (${fmtMoney(p.balance)})</option>`).join('');
+  moveCard.innerHTML = `
+    <div class="balance-move-title">💸 Registrar movimiento</div>
+    <div class="balance-move-form">
+      <select id="balMovePlayer">${playerOptions}</select>
+      <input type="number" id="balMoveAmount" placeholder="Monto" min="0" step="1">
+      <input type="text" id="balMoveNote" placeholder="Nota (opcional) — ej. loot ZVZ 18/08">
+      <button type="button" class="primary small" id="balAddBtn">+ Agregar saldo</button>
+      <button type="button" class="ghost small" id="balSubBtn">− Quitar saldo</button>
+    </div>
+  `;
+  wrap.appendChild(moveCard);
+
+  function doMove(sign) {
+    const playerId = moveCard.querySelector('#balMovePlayer').value;
+    const amount = Math.abs(Number(moveCard.querySelector('#balMoveAmount').value));
+    const note = moveCard.querySelector('#balMoveNote').value;
+    if (!amount) { showToast('Ingresá un monto válido'); return; }
+    addBalanceMovement(playerId, amount * sign, note);
+    renderPanel();
+    showToast(sign > 0 ? 'Saldo agregado ✔' : 'Saldo descontado ✔');
+  }
+  moveCard.querySelector('#balAddBtn').onclick = () => doMove(1);
+  moveCard.querySelector('#balSubBtn').onclick = () => doMove(-1);
+
+  const table = document.createElement('div');
+  table.className = 'balance-table';
+  const tHead = document.createElement('div');
+  tHead.className = 'balance-row balance-row-head';
+  tHead.innerHTML = `<div>Jugador</div><div>Saldo</div><div>Movs.</div><div></div>`;
+  table.appendChild(tHead);
+
+  [...state.balances].sort((a, b) => b.balance - a.balance).forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'balance-row';
+    const cls = p.balance > 0 ? 'positive' : (p.balance < 0 ? 'negative' : '');
+    row.innerHTML = `
+      <div class="balance-name-cell">${avatarHtml(p.name)}<span class="balance-name">${p.name}</span></div>
+      <div class="balance-amount ${cls}">${fmtMoney(p.balance)}</div>
+      <div class="balance-count">${p.history.length} mov.</div>
+      <div class="balance-actions">
+        <button type="button" class="small ghost balHistBtn">Historial</button>
+        <button type="button" class="small ghost balDelBtn" title="Quitar jugador del balance">✕</button>
+      </div>
+    `;
+    row.querySelector('.balHistBtn').onclick = () => {
+      const hCls = p.balance > 0 ? 'positive' : (p.balance < 0 ? 'negative' : '');
+      let itemsHtml;
+      if (!p.history.length) {
+        itemsHtml = `<div class="empty-msg">Todavía no hay movimientos registrados para ${p.name}.</div>`;
+      } else {
+        itemsHtml = p.history.map(h => {
+          const d = new Date(h.ts);
+          const fecha = d.toLocaleDateString('es-ES') + ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+          const iCls = h.delta > 0 ? 'positive' : 'negative';
+          const sign = h.delta > 0 ? '+' : '';
+          return `
+            <div class="bal-hist-item ${iCls}">
+              <div class="bal-hist-item-amount">${sign}${fmtMoney(h.delta)}</div>
+              <div class="bal-hist-item-meta">
+                <span class="bal-hist-date">${fecha}</span>
+                ${h.note ? `<span class="bal-hist-note">${h.note}</span>` : ''}
+              </div>
+            </div>`;
+        }).join('');
+      }
+      const html = `
+        <div class="bal-hist-summary">
+          ${avatarHtml(p.name, 'large')}
+          <div>
+            <div class="bal-hist-summary-name">${p.name}</div>
+            <div class="bal-hist-summary-amount ${hCls}">${fmtMoney(p.balance)}</div>
+          </div>
+        </div>
+        <div class="bal-hist-list">${itemsHtml}</div>
+      `;
+      openGuideModal('Historial de movimientos', html);
+    };
+    row.querySelector('.balDelBtn').onclick = () => {
+      if (!confirm(`¿Quitar a ${p.name} del balance? Se perderá su historial.`)) return;
+      removeBalancePlayer(p.id);
+      renderPanel();
+    };
+    table.appendChild(row);
+  });
+  wrap.appendChild(table);
+
+  return wrap;
+}
+
+function renderAll() {
+  renderModeBar();
+  renderPanel();
+}
+
+/* ---------------- Exportar / Importar ---------------- */
+function serializeState() {
+  return JSON.stringify({
+    version: 2,
+    guildName: state.guildName,
+    mode: state.mode,
+    lastCompMode: state.lastCompMode,
+    lastSoloMode: state.lastSoloMode,
+    lastAvalonMode: state.lastAvalonMode,
+    zvzVariant: state.zvzVariant,
+    comps: state.comps,
+    balances: state.balances,
+    soloOverrides: state.soloOverrides,
+  }, null, 2);
+}
+
+/* Aplica un objeto de estado (exportado con serializeState, o leído del
+   localStorage del navegador) al estado actual — se usa tanto al importar un
+   archivo .json a mano como al recuperar el autoguardado al abrir la
+   página. Tolera datos viejos/incompletos (de una versión anterior de la
+   herramienta) sin romper: todo lo que falte se queda con su valor actual. */
+function applyState(data) {
+  if (!data || typeof data !== 'object') return;
+  state.guildName = data.guildName || state.guildName;
+  state.mode = data.mode || state.mode;
+  state.zvzVariant = data.zvzVariant || state.zvzVariant;
+  if (data.comps && typeof data.comps === 'object') {
+    COMPOSABLE_MODES.forEach(m => {
+      const incoming = data.comps[m];
+      if (incoming && Array.isArray(incoming.list) && incoming.list.length) {
+        state.comps[m] = {
+          active: Math.min(Math.max(0, incoming.active || 0), incoming.list.length - 1),
+          list: incoming.list,
+        };
+      }
+    });
+  } else if (data.zvzGroups || data.grupal || data.estatica || data.avalon_azul || data.avalon_dorado) {
+    // Respaldo de una versión anterior (sin builds con nombre) — se migra
+    // cada roster suelto a una lista de 1 sola build llamada "Grupo N"/"1".
+    if (Array.isArray(data.zvzGroups) && data.zvzGroups.length) {
+      state.comps.zvz = {
+        active: Math.min(Math.max(0, data.zvzActive || 0), data.zvzGroups.length - 1),
+        list: data.zvzGroups.map((roster, i) => ({ id: uid(), name: `Grupo ${i + 1}`, roster })),
+      };
+    }
+    ['grupal', 'estatica', 'avalon_azul', 'avalon_dorado'].forEach(m => {
+      if (Array.isArray(data[m]) && data[m].length) {
+        state.comps[m] = { active: 0, list: [{ id: uid(), name: `${MODES[m].label} 1`, roster: data[m] }] };
+      }
+    });
+  }
+  state.lastCompMode = COMP_MODES.includes(state.mode) ? state.mode : (data.lastCompMode || state.lastCompMode || 'zvz');
+  state.lastSoloMode = SOLO_MODES.includes(state.mode) ? state.mode : (data.lastSoloMode || state.lastSoloMode || 'solo_pve');
+  state.lastAvalonMode = AVALON_MODES.includes(state.mode) ? state.mode : (data.lastAvalonMode || state.lastAvalonMode || 'avalon_azul');
+  state.balances = data.balances || state.balances;
+  state.soloOverrides = data.soloOverrides || state.soloOverrides;
+}
+
+/* ---------------- Autoguardado en el navegador ----------------
+   Como esta herramienta se piensa para subir a un servidor propio (sin
+   backend), el único lugar donde "guardar" tiene sentido es el navegador de
+   quien la usa: localStorage. Cada cambio se autoguarda ahí, así que al
+   cerrar la pestaña y volver a abrirla (o recargar la página) todo sigue
+   como estaba. Esto es local a ESE navegador/dispositivo — no es un backend
+   compartido — por eso además queda el botón "Exportar" para bajar un
+   respaldo en .json que se puede guardar aparte o pasarle a otra persona. */
+const STORAGE_KEY = 'pvpx_albion_comp_state_v2';
+function saveToStorage() {
+  try { localStorage.setItem(STORAGE_KEY, serializeState()); } catch (err) { /* localStorage no disponible (modo privado, cuota llena, etc.) — se sigue usando la app sin autoguardado */ }
+}
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+}
+
+function downloadFile(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function textReport() {
+  const lines = [];
+  lines.push(`═══ ${state.guildName || 'PVPX'} — Composición Albion Online ═══`);
+  lines.push('');
+  function rosterBlock(title, roster, max) {
+    lines.push(`### ${title} (${roster.length}/${max})`);
+    roster.forEach((s, i) => {
+      const def = ROLES[s.role];
+      const w = s.customWeapon || def.weapons[s.weaponIdx] || def.weapons[0];
+      const name = s.player.trim() || '— sin asignar —';
+      const pieces = [
+        effectivePiece(s, w, 'helm'),
+        effectivePiece(s, w, 'chest'),
+        effectivePiece(s, w, 'boots'),
+        effectivePiece(s, w, 'cape'),
+        effectivePiece(s, w, 'off'),
+        effectivePiece(s, w, 'food'),
+      ];
+      const gear = pieces.filter(Boolean).map(p => p[0]).join(' / ');
+      lines.push(`${i + 1}. ${def.icon} ${def.label} | ${w.name}${gear ? ' [' + gear + ']' : ''} | ${name}`);
+    });
+    lines.push('');
+  }
+  if (state.mode === 'zvz') {
+    lines.push(`Doctrina ZVZ: ${ZVZ_VARIANTS[state.zvzVariant].label}`);
+    lines.push('');
+    state.comps.zvz.list.forEach(entry => rosterBlock(`ZVZ — ${entry.name}`, entry.roster, 20));
+  } else if (COMPOSABLE_MODES.includes(state.mode)) {
+    const bucket = state.comps[state.mode];
+    const entry = bucket.list[bucket.active];
+    rosterBlock(`${MODES[state.mode].label} — ${entry.name}`, entry.roster, MODES[state.mode].max);
+  } else if (SOLO_MODES.includes(state.mode)) {
+    lines.push(`### Builds en solitario — ${MODES[state.mode].label}`);
+    lines.push('');
+    SOLO_BUILDS[state.mode].forEach((b, i) => {
+      const ov = soloOverrideFor(b);
+      const weapon = ov.weapon || b.weapon;
+      const slot = { gear: ov.gear };
+      const pieces = [
+        effectivePiece(slot, weapon, 'helm'),
+        effectivePiece(slot, weapon, 'chest'),
+        effectivePiece(slot, weapon, 'boots'),
+        effectivePiece(slot, weapon, 'cape'),
+        effectivePiece(slot, weapon, 'off'),
+      ];
+      const gear = pieces.filter(Boolean).map(p => p[0]).join(' / ');
+      lines.push(`${i + 1}. ${b.icon} ${b.label} | ${weapon.name}${gear ? ' [' + gear + ']' : ''}`);
+    });
+    lines.push('');
+  } else if (state.mode === 'balance') {
+    const total = state.balances.reduce((s, p) => s + p.balance, 0);
+    lines.push(`### Balance de jugadores (saldo total: ${fmtMoney(total)})`);
+    [...state.balances].sort((a, b) => b.balance - a.balance).forEach((p, i) => {
+      lines.push(`${i + 1}. ${p.name} — ${fmtMoney(p.balance)}`);
+    });
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+/* ---------------- Invitación para Discord (imagen + texto) ----------------
+   Genera una tarjeta de invitación con la build actual, lista para pegar en
+   Discord y que la gente se anote: arriba el título del evento y la lista
+   de equipo por rol en texto (arma / pecho / casco / botas), abajo un grid
+   visual con los íconos reales de cada pieza (vía Render Service de Albion;
+   si algún ícono no carga, se usa un emoji de respaldo — la imagen nunca se
+   rompe por eso). Se puede copiar la imagen directo al portapapeles (para
+   pegar con Ctrl+V en el chat de Discord), descargarla como PNG, o copiar
+   solo el texto. */
+
+/* Roster + metadatos de la build actualmente mostrada, sin importar la
+   pestaña (ZVZ toma el grupo activo, no todos los grupos a la vez — cada
+   grupo se anuncia por separado). Devuelve null en Solitario/Balance,
+   donde no aplica una "build" para invitar gente. */
+function currentInvitationRoster() {
+  if (state.mode === 'zvz') {
+    const bucket = state.comps.zvz;
+    const entry = bucket.list[bucket.active];
+    return entry ? { entry, roster: entry.roster, label: `ZVZ · ${ZVZ_VARIANTS[state.zvzVariant].label}` } : null;
+  }
+  if (COMPOSABLE_MODES.includes(state.mode)) {
+    const bucket = state.comps[state.mode];
+    const entry = bucket.list[bucket.active];
+    return entry ? { entry, roster: entry.roster, label: MODES[state.mode].label } : null;
+  }
+  return null;
+}
+
+function invitationGearLine(slot) {
+  const def = ROLES[slot.role];
+  const w = slot.customWeapon || def.weapons[slot.weaponIdx] || def.weapons[0];
+  const helm = effectivePiece(slot, w, 'helm');
+  const chest = effectivePiece(slot, w, 'chest');
+  const boots = effectivePiece(slot, w, 'boots');
+  const cape = effectivePiece(slot, w, 'cape');
+  const parts = [shortEsName(w.name), chest && chest[0], helm && helm[0], boots && boots[0]].filter(Boolean);
+  return { def, weapon: w, helm, chest, boots, cape, text: parts.join(' / ') };
+}
+
+/* Convierte el valor de un <input type="datetime-local"> — interpretado
+   como la hora LOCAL de quien arma la invitación, que es como el navegador
+   entrega ese valor — a un texto legible en horario UTC, para que
+   cualquiera del gremio pueda convertirlo a su propio huso sin ambigüedad
+   ni depender de que todos estén en la misma zona horaria. */
+function formatWhenUTC(datetimeLocalValue) {
+  if (!datetimeLocalValue) return '';
+  const d = new Date(datetimeLocalValue);
+  if (isNaN(d.getTime())) return '';
+  try {
+    const fmt = new Intl.DateTimeFormat('es-AR', {
+      weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC',
+    });
+    return `${fmt.format(d)} UTC`;
+  } catch (err) {
+    return `${d.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+  }
+}
+
+function invitationTextBlock(title, when, notes, roster) {
+  const lines = [];
+  lines.push(`📢 ${title}`);
+  if (when) lines.push(`🗓️ ${when}`);
+  lines.push('');
+  lines.push('Composición requerida:');
+  roster.forEach(s => {
+    const g = invitationGearLine(s);
+    lines.push(`- ${g.def.icon} ${g.def.label}: ${g.text}.`);
+  });
+  if (notes) { lines.push(''); lines.push(`📌 ${notes}`); }
+  lines.push('');
+  lines.push('✅ ¡Anotate respondiendo a este mensaje con tu rol y arma disponible!');
+  return lines.join('\n');
+}
+
+/* ---------------- Sincronización en vivo con Discord (opcional) -----------
+   Además de copiar/descargar la invitación a mano, se puede "publicar" el
+   evento: esta página escribe los datos en Firebase Realtime Database: un
+   bot de Discord aparte (carpeta discord-bot/ junto a este archivo) lo ve,
+   publica el mensaje en el canal configurado y le agrega una reacción por
+   cada rol de la composición. A partir de ahí, cada reacción que la gente
+   agregue o saque en Discord el bot la refleja en Firebase, y esta página
+   la muestra en vivo acá abajo, sin recargar.
+
+   Para que esto funcione hace falta:
+   1. Completar FIREBASE_CONFIG de acá abajo con los datos de tu propio
+      proyecto de Firebase (el plan gratis alcanza de sobra).
+   2. Tener el bot de discord-bot/ corriendo (ver su README.md).
+   Si no se completa FIREBASE_CONFIG, esta parte de la invitación
+   simplemente no se muestra y el resto de la herramienta (copiar imagen,
+   descargar, copiar texto) sigue funcionando exactamente igual que antes.
+---------------------------------------------------------------------------- */
+const FIREBASE_CONFIG = {
+  apiKey: '',
+  authDomain: '',
+  databaseURL: '',
+  projectId: '',
+};
+const FIREBASE_ENABLED = !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL);
+
+let firebaseDbInstance = null;
+function getFirebaseDb() {
+  if (!FIREBASE_ENABLED) return null;
+  if (firebaseDbInstance) return firebaseDbInstance;
+  try {
+    if (typeof firebase === 'undefined') return null;
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    firebaseDbInstance = firebase.database();
+    return firebaseDbInstance;
+  } catch (err) {
+    console.error('No se pudo inicializar Firebase:', err);
+    return null;
+  }
+}
+
+function genEventId() {
+  return 'evt_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+/* Escribe el evento "pending" en Firebase y va avisando por `onStatus` a
+   medida que cambia: 'waiting' (recién escrito, esperando al bot),
+   'posted' (el bot ya lo publicó en Discord) o 'error'. Devuelve el
+   eventId para poder después escuchar las anotaciones con
+   watchEventSignups. */
+function publishEventToDiscord({ title, when, notes, roster, channelId }, onStatus) {
+  const db = getFirebaseDb();
+  if (!db) {
+    onStatus({ state: 'error', message: 'Firebase no está configurado en esta página (ver discord-bot/README.md).' });
+    return null;
+  }
+
+  const eventId = genEventId();
+  const payload = {
+    status: 'pending',
+    title,
+    when: when || null,
+    notes: notes || null,
+    guildName: state.guildName || 'PVPX',
+    channelId: channelId || null,
+    createdAt: firebase.database.ServerValue.TIMESTAMP,
+    roster: roster.map(s => {
+      const g = invitationGearLine(s);
+      return { role: s.role, weaponName: shortEsName(g.weapon.name), gearText: g.text };
+    }),
+  };
+
+  const ref = db.ref('events/' + eventId);
+  ref.set(payload)
+    .then(() => {
+      onStatus({ state: 'waiting', eventId });
+      ref.on('value', (snap) => {
+        const val = snap.val();
+        if (!val) return;
+        if (val.status === 'posted') {
+          onStatus({ state: 'posted', eventId, messageId: val.messageId, channelId: val.channelId });
+        } else if (val.status === 'error') {
+          onStatus({ state: 'error', message: val.error || 'El bot no pudo publicar el evento — revisá que esté corriendo.' });
+        }
+      });
+    })
+    .catch((err) => {
+      onStatus({ state: 'error', message: err.message || String(err) });
+    });
+
+  return eventId;
+}
+
+/* Escucha en vivo quién se anotó a cada rol de un evento ya publicado.
+   Devuelve una función para dejar de escuchar (se llama al cerrar el
+   modal, para no dejar listeners de Firebase colgados). */
+function watchEventSignups(eventId, onSignups) {
+  const db = getFirebaseDb();
+  if (!db) return () => {};
+  const ref = db.ref('events/' + eventId + '/signups');
+  const handler = (snap) => onSignups(snap.val() || {});
+  ref.on('value', handler);
+  return () => ref.off('value', handler);
+}
+
+/* Carga un ícono de Render Service en modo CORS-anónimo para poder dibujarlo
+   en canvas sin "mancharlo" (lo que impediría exportar la imagen después).
+   Si el ícono no carga (falla de red, CORS, nombre no exacto) o tarda más
+   de 6s, resuelve null y quien dibuja usa un emoji de respaldo — la
+   invitación nunca queda rota por un ícono puntual. */
+function loadOneImg(src, timeoutMs) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    let done = false;
+    const finish = (result) => { if (!done) { done = true; resolve(result); } };
+    img.onload = () => finish(img);
+    img.onerror = () => finish(null);
+    img.src = src;
+    setTimeout(() => finish(null), timeoutMs);
+  });
+}
+function loadIconImg(suffix) {
+  const url = iconUrl(suffix);
+  if (!url) return Promise.resolve(null);
+  return loadOneImg(url, 6000).then(img => {
+    if (img) return img;
+    // El pedido directo en modo CORS puede fallar si el Render Service de
+    // Albion no manda encabezados CORS en ese momento (el ícono se ve bien
+    // como <img> normal en el resto de la herramienta, pero un canvas
+    // necesita CORS para poder exportarse después) — se reintenta una vez
+    // a través de un proxy de imágenes público que sí los agrega, para no
+    // perder el ícono real. Si esto también falla, se usa el emoji de
+    // respaldo — la invitación nunca se rompe por esto.
+    const bare = url.replace(/^https?:\/\//, '');
+    const proxied = `https://images.weserv.nl/?url=${encodeURIComponent(bare)}`;
+    return loadOneImg(proxied, 6000);
+  });
+}
+async function loadIconCache(suffixes) {
+  const unique = [...new Set(suffixes.filter(Boolean))];
+  const cache = new Map();
+  await Promise.all(unique.map(async (suffix) => { cache.set(suffix, await loadIconImg(suffix)); }));
+  return cache;
+}
+
+function drawRoundRect(ctx, x, y, w, h, r) {
+  if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
+  ctx.beginPath();
+  ctx.moveTo(x + r.tl, y);
+  ctx.lineTo(x + w - r.tr, y);
+  ctx.arcTo(x + w, y, x + w, y + r.tr, r.tr);
+  ctx.lineTo(x + w, y + h - r.br);
+  ctx.arcTo(x + w, y + h, x + w - r.br, y + h, r.br);
+  ctx.lineTo(x + r.bl, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r.bl, r.bl);
+  ctx.lineTo(x + r.tl, y);
+  ctx.arcTo(x, y, x + r.tl, y, r.tl);
+  ctx.closePath();
+}
+
+function wrapCanvasText(ctx, text, maxWidth) {
+  const words = String(text || '').split(' ');
+  const lines = [];
+  let cur = '';
+  words.forEach(word => {
+    const test = cur ? cur + ' ' + word : word;
+    if (cur && ctx.measureText(test).width > maxWidth) {
+      lines.push(cur);
+      cur = word;
+    } else {
+      cur = test;
+    }
+  });
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+/* Arma la imagen PNG completa de la invitación. Es async porque primero
+   espera a que carguen las tipografías (Cinzel/Rajdhani, ya usadas en el
+   resto de la herramienta) y todos los íconos de equipo en paralelo, para
+   poder calcular alturas exactas antes de dibujar nada. */
+async function buildInvitationCanvas({ title, when, notes, roster, label }) {
+  try {
+    if (document.fonts && document.fonts.load) {
+      await Promise.all([
+        document.fonts.load('900 34px Cinzel'),
+        document.fonts.load('700 19px Cinzel'),
+        document.fonts.load('700 20px Cinzel'),
+        document.fonts.load('700 14px Rajdhani'),
+        document.fonts.load('600 14px Rajdhani'),
+        document.fonts.load('600 15px Rajdhani'),
+        document.fonts.load('500 14px Rajdhani'),
+      ]);
+    }
+  } catch (err) { /* si no cargan las fuentes, seguimos con las del sistema */ }
+
+  const gearLines = roster.map(invitationGearLine);
+  const neededSuffixes = [];
+  gearLines.forEach(g => {
+    if (g.weapon.u) neededSuffixes.push(g.weapon.u);
+    if (g.helm) neededSuffixes.push(g.helm[1]);
+    if (g.chest) neededSuffixes.push(g.chest[1]);
+    if (g.boots) neededSuffixes.push(g.boots[1]);
+    if (g.cape) neededSuffixes.push(g.cape[1]);
+  });
+  const iconCache = await loadIconCache(neededSuffixes);
+
+  const SCALE = 2;
+  const W = 900;
+  const PAD = 34;
+  const subtitle = when;
+
+  // Medimos primero en un canvas descartable para calcular alturas exactas
+  // (el título puede ocupar 1 o 2 líneas según cuánto escriba cada usuario).
+  const mctx = document.createElement('canvas').getContext('2d');
+  mctx.font = "900 34px Cinzel, serif";
+  const titleLines = wrapCanvasText(mctx, title, W - PAD * 2).slice(0, 2);
+  // Replica exactamente los mismos incrementos que el dibujo real más abajo,
+  // así el alto reservado siempre alcanza sin importar cuántas líneas ocupe
+  // el título ni si hay subtítulo (evita que el renglón de abajo se pise).
+  let headerContentBottom = 82 + titleLines.length * 40;
+  if (subtitle) headerContentBottom += 26;
+  const headerH = headerContentBottom + 44; // espacio para el renglón "X jugadores requeridos" + padding
+
+  mctx.font = "italic 500 13px Rajdhani, sans-serif";
+  const noteLines = notes ? wrapCanvasText(mctx, `📌 ${notes}`, W - PAD * 2) : [];
+
+  const listLineH = 24;
+  const listH = 54 + gearLines.length * listLineH + (noteLines.length ? noteLines.length * 18 + 8 : 0);
+
+  const cardW = (W - PAD * 2 - 16) / 2;
+  const cardH = 132;
+  const rows = Math.ceil(roster.length / 2);
+  const gridH = 58 + rows * (cardH + 14);
+
+  const footerH = 92;
+  const H = headerH + listH + gridH + footerH + PAD;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(W * SCALE);
+  canvas.height = Math.round(H * SCALE);
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+
+  // Fondo general
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#161616');
+  bgGrad.addColorStop(1, '#0c0c0c');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#c8102e';
+  ctx.lineWidth = 3;
+  drawRoundRect(ctx, 3, 3, W - 6, H - 6, 14);
+  ctx.stroke();
+
+  // ---- Header banner ----
+  const headerGrad = ctx.createLinearGradient(0, 0, W, 0);
+  headerGrad.addColorStop(0, '#c8102e');
+  headerGrad.addColorStop(1, '#7a0a1e');
+  ctx.fillStyle = headerGrad;
+  drawRoundRect(ctx, 0, 0, W, headerH, { tl: 12, tr: 12, br: 0, bl: 0 });
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.font = "600 14px Rajdhani, sans-serif";
+  ctx.fillText(`⚔ ${state.guildName || 'PVPX'} · ${label}`, PAD, 40);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = "900 34px Cinzel, serif";
+  let ty = 82;
+  titleLines.forEach(line => { ctx.fillText(line, PAD, ty); ty += 40; });
+
+  if (subtitle) {
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.font = "600 17px Rajdhani, sans-serif";
+    ctx.fillText(`🗓️ ${subtitle}`, PAD, ty - 4);
+    ty += 26;
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,.75)';
+  ctx.font = "600 14px Rajdhani, sans-serif";
+  ctx.fillText(`👥 ${roster.length} jugador${roster.length === 1 ? '' : 'es'} requeridos`, PAD, headerH - 18);
+
+  let y = headerH + 30;
+  // ---- Lista de equipo (texto) ----
+  ctx.fillStyle = '#ff2d43';
+  ctx.font = "700 19px Cinzel, serif";
+  ctx.fillText('COMPOSICIÓN REQUERIDA', PAD, y);
+  y += 12;
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD, y + 6); ctx.lineTo(W - PAD, y + 6); ctx.stroke();
+  y += 30;
+
+  gearLines.forEach((g, i) => {
+    const accent = ROLE_ACCENT[roster[i].role] || '#c8102e';
+    ctx.fillStyle = accent;
+    ctx.beginPath(); ctx.arc(PAD + 4, y - 5, 4, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = '#f4f4f4';
+    ctx.font = "700 14.5px Rajdhani, sans-serif";
+    const roleLabel = `${g.def.icon} ${g.def.label}: `;
+    ctx.fillText(roleLabel, PAD + 16, y);
+    const roleLabelW = ctx.measureText(roleLabel).width;
+
+    ctx.fillStyle = '#c9c9c9';
+    ctx.font = "500 14px Rajdhani, sans-serif";
+    ctx.fillText(`${g.text}.`, PAD + 16 + roleLabelW, y);
+    y += listLineH;
+  });
+
+  if (noteLines.length) {
+    y += 8;
+    ctx.fillStyle = '#9a9a9a';
+    ctx.font = "italic 500 13px Rajdhani, sans-serif";
+    noteLines.forEach(l => { ctx.fillText(l, PAD, y); y += 18; });
+  }
+
+  y += 22;
+  // ---- Grid visual de roles (íconos reales de la build; si el ícono real
+  //      de una pieza puntual no carga, se usa un emoji de respaldo) ----
+  ctx.fillStyle = '#ff2d43';
+  ctx.font = "700 19px Cinzel, serif";
+  ctx.fillText('EQUIPO — VISTA RÁPIDA', PAD, y);
+  y += 12;
+  ctx.beginPath(); ctx.moveTo(PAD, y + 6); ctx.lineTo(W - PAD, y + 6); ctx.stroke();
+  y += 28;
+  const gridTop = y;
+
+  gearLines.forEach((g, i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const cx = PAD + col * (cardW + 16);
+    const cy = gridTop + row * (cardH + 14);
+    const accent = ROLE_ACCENT[roster[i].role] || '#c8102e';
+
+    ctx.fillStyle = '#161616';
+    drawRoundRect(ctx, cx, cy, cardW, cardH, 10);
+    ctx.fill();
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 1.5;
+    drawRoundRect(ctx, cx, cy, cardW, cardH, 10);
+    ctx.stroke();
+    ctx.fillStyle = accent;
+    drawRoundRect(ctx, cx, cy, 5, cardH, { tl: 10, bl: 10, tr: 0, br: 0 });
+    ctx.fill();
+
+    ctx.fillStyle = accent;
+    ctx.font = "700 13px Rajdhani, sans-serif";
+    ctx.fillText(`${g.def.icon} ${g.def.label.toUpperCase()}`, cx + 16, cy + 20);
+    ctx.fillStyle = '#f4f4f4';
+    ctx.font = "600 13.5px Rajdhani, sans-serif";
+    const wLines = wrapCanvasText(ctx, shortEsName(g.weapon.name), cardW - 30);
+    ctx.fillText(wLines[0] || '', cx + 16, cy + 38);
+
+    const iconSize = 42;
+    const iconGap = 7;
+    const iconsY = cy + 50;
+    const pieces = [
+      [g.weapon.u ? [g.weapon.name, g.weapon.u] : null, g.def.icon],
+      [g.helm, '🪖'],
+      [g.chest, '👕'],
+      [g.cape, '🧣'],
+      [g.boots, '👢'],
+    ];
+    pieces.forEach(([piece, emoji], idx) => {
+      const ix = cx + 16 + idx * (iconSize + iconGap);
+      ctx.fillStyle = '#0a0a0a';
+      drawRoundRect(ctx, ix, iconsY, iconSize, iconSize, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#2a2a2a';
+      ctx.lineWidth = 1;
+      drawRoundRect(ctx, ix, iconsY, iconSize, iconSize, 8);
+      ctx.stroke();
+      const img = piece ? iconCache.get(piece[1]) : null;
+      if (img) {
+        ctx.save();
+        drawRoundRect(ctx, ix + 2, iconsY + 2, iconSize - 4, iconSize - 4, 6);
+        ctx.clip();
+        ctx.drawImage(img, ix + 2, iconsY + 2, iconSize - 4, iconSize - 4);
+        ctx.restore();
+      } else {
+        // Algunos glifos (ej. "✚") no tienen presentación a color garantizada
+        // y caen a un trazo monocromo que toma el fillStyle actual — si no
+        // se resetea acá, hereda el negro de fondo de la casilla y queda
+        // invisible. Por eso se fija un color claro explícito antes de
+        // dibujarlo, sin importar qué carácter sea.
+        ctx.fillStyle = '#f4f4f4';
+        ctx.font = "22px sans-serif";
+        ctx.textAlign = 'center';
+        ctx.fillText(emoji, ix + iconSize / 2, iconsY + iconSize / 2 + 8);
+        ctx.textAlign = 'left';
+      }
+    });
+  });
+  y = gridTop + rows * (cardH + 14) + 18;
+
+  // ---- Footer / llamado a la acción ----
+  const footerGrad = ctx.createLinearGradient(0, y, W, y);
+  footerGrad.addColorStop(0, '#7a0a1e');
+  footerGrad.addColorStop(1, '#c8102e');
+  ctx.fillStyle = footerGrad;
+  drawRoundRect(ctx, 0, y, W, H - y, { tl: 0, tr: 0, br: 12, bl: 12 });
+  ctx.fill();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = "700 20px Cinzel, serif";
+  ctx.fillText('✅ ¡ANOTATE PARA PARTICIPAR!', W / 2, y + 40);
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  ctx.font = "600 14.5px Rajdhani, sans-serif";
+  ctx.fillText('Respondé con tu rol y arma disponible para reservar tu lugar 👇', W / 2, y + 66);
+  ctx.textAlign = 'left';
+
+  return canvas;
+}
+
+/* Modal con el formulario (título/fecha/notas) + vista previa de la
+   invitación generada, reutilizando el mismo overlay que la Guía y los
+   selectores de equipo (guarda contenido HTML propio en #modalGuide). */
+function openInvitationModal() {
+  const data = currentInvitationRoster();
+  if (!data || !data.roster.length) {
+    showToast('Elegí una build con jugadores para generar la invitación');
+    return;
+  }
+  const { entry, roster, label } = data;
+  const defaultTitle = `${label} — ${entry.name}`;
+
+  document.getElementById('modalTitle').textContent = '🎉 Invitación para Discord';
+  document.getElementById('modalText').style.display = 'none';
+  document.getElementById('modalFoot').style.display = 'none';
+  document.getElementById('modalBox').classList.add('wide');
+  const guide = document.getElementById('modalGuide');
+  guide.style.display = '';
+  guide.innerHTML = '';
+
+  const form = document.createElement('div');
+  form.className = 'invite-form';
+
+  function fieldRow(labelText, placeholder, value, type) {
+    const lbl = document.createElement('label');
+    lbl.className = 'invite-label';
+    lbl.appendChild(document.createTextNode(labelText));
+    const input = document.createElement('input');
+    input.type = type || 'text';
+    if (placeholder) input.placeholder = placeholder;
+    if (value) input.value = value;
+    lbl.appendChild(input);
+    return { lbl, input };
+  }
+
+  // Fecha y hora: en vez de un solo <input type="datetime-local"> (cuyo
+  // reloj nativo puede mostrar AM/PM según el idioma del navegador del
+  // usuario, algo que no se puede forzar de forma confiable desde la
+  // página), se arma con un <input type="date"> (ese sí es siempre un
+  // calendario, sin ambigüedad de horario) más dos <select> propios de
+  // hora (00-23) y minuto, con las opciones escritas a mano en formato de
+  // 24 horas — así nunca puede aparecer AM/PM sin importar el navegador o
+  // la configuración regional de quien la usa. Sigue siendo "con
+  // selección" (nada de tipear texto libre), solo que ya no depende del
+  // widget nativo del navegador para el horario.
+  function dateTimeRow(labelText) {
+    const lbl = document.createElement('label');
+    lbl.className = 'invite-label';
+    lbl.appendChild(document.createTextNode(labelText));
+    const wrap = document.createElement('div');
+    wrap.className = 'invite-datetime-wrap';
+
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.className = 'invite-date-input';
+    wrap.appendChild(dateInput);
+
+    const hourSelect = document.createElement('select');
+    hourSelect.className = 'invite-hour-select';
+    hourSelect.setAttribute('aria-label', 'Hora (24 hs)');
+    for (let h = 0; h < 24; h++) {
+      const opt = document.createElement('option');
+      opt.value = String(h).padStart(2, '0');
+      opt.textContent = String(h).padStart(2, '0');
+      hourSelect.appendChild(opt);
+    }
+    wrap.appendChild(hourSelect);
+
+    const sep = document.createElement('span');
+    sep.className = 'invite-time-sep';
+    sep.textContent = ':';
+    wrap.appendChild(sep);
+
+    const minuteSelect = document.createElement('select');
+    minuteSelect.className = 'invite-minute-select';
+    minuteSelect.setAttribute('aria-label', 'Minuto');
+    [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = String(m).padStart(2, '0');
+      opt.textContent = String(m).padStart(2, '0');
+      minuteSelect.appendChild(opt);
+    });
+    wrap.appendChild(minuteSelect);
+
+    lbl.appendChild(wrap);
+    return {
+      lbl, dateInput, hourSelect, minuteSelect,
+      getValue: () => dateInput.value ? `${dateInput.value}T${hourSelect.value}:${minuteSelect.value}` : '',
+    };
+  }
+
+  const titleRow = fieldRow('Título del evento', '', defaultTitle);
+  titleRow.input.maxLength = 70;
+  // Se elige en el horario local de quien arma la invitación y se muestra
+  // en la invitación ya convertida a UTC (en formato 24 hs, sin AM/PM),
+  // para que nadie del gremio tenga dudas sin importar en qué huso horario
+  // esté ni qué navegador use.
+  const whenRow = dateTimeRow('Fecha y hora (opcional — 24 hs, se muestra en UTC)');
+  const notesRow = fieldRow('Notas para quien se anote (opcional)', 'Ej: Traé poción y comida en el inventario');
+  notesRow.input.maxLength = 120;
+
+  form.appendChild(titleRow.lbl);
+  form.appendChild(whenRow.lbl);
+  form.appendChild(notesRow.lbl);
+
+  let channelRow = null;
+  if (FIREBASE_ENABLED) {
+    channelRow = fieldRow('Canal de Discord para publicar (ID, opcional)', 'Vacío = canal por defecto del bot');
+    channelRow.input.maxLength = 30;
+    form.appendChild(channelRow.lbl);
+  }
+
+  const genBtn = document.createElement('button');
+  genBtn.type = 'button';
+  genBtn.className = 'primary';
+  genBtn.style.marginTop = '2px';
+  genBtn.textContent = '🖼 Generar invitación';
+  form.appendChild(genBtn);
+
+  guide.appendChild(form);
+
+  const previewWrap = document.createElement('div');
+  previewWrap.id = 'invitePreviewWrap';
+  previewWrap.style.marginTop = '18px';
+  guide.appendChild(previewWrap);
+
+  genBtn.onclick = async () => {
+    const title = titleRow.input.value.trim() || defaultTitle;
+    const when = formatWhenUTC(whenRow.getValue());
+    const notes = notesRow.input.value.trim();
+    const channelId = channelRow ? channelRow.input.value.trim() : '';
+    genBtn.disabled = true;
+    genBtn.textContent = '⏳ Generando...';
+    try {
+      const canvas = await buildInvitationCanvas({ title, when, notes, roster, label });
+      renderInvitationPreview(canvas, title, invitationTextBlock(title, when, notes, roster), { title, when, notes, roster, channelId });
+    } catch (err) {
+      showToast('No se pudo generar la imagen ✕');
+    } finally {
+      genBtn.disabled = false;
+      genBtn.textContent = '🖼 Generar invitación';
+    }
+  };
+
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function renderInvitationPreview(canvas, title, text, syncData) {
+  const wrap = document.getElementById('invitePreviewWrap');
+  if (!wrap) return;
+  stopActiveSignupWatch();
+  wrap.innerHTML = '';
+
+  const img = document.createElement('img');
+  img.src = canvas.toDataURL('image/png');
+  img.alt = 'Vista previa de la invitación';
+  wrap.appendChild(img);
+
+  const actions = document.createElement('div');
+  actions.className = 'invite-actions';
+
+  const copyImgBtn = document.createElement('button');
+  copyImgBtn.type = 'button';
+  copyImgBtn.className = 'primary';
+  copyImgBtn.textContent = '📋 Copiar imagen';
+  copyImgBtn.onclick = () => {
+    if (!navigator.clipboard || !window.ClipboardItem) {
+      showToast('Tu navegador no permite copiar imágenes — usá "Descargar imagen" ✕');
+      return;
+    }
+    try {
+      const item = new ClipboardItem({
+        'image/png': new Promise((resolve, reject) => {
+          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('sin blob')), 'image/png');
+        }),
+      });
+      navigator.clipboard.write([item])
+        .then(() => showToast('Imagen copiada — pegala en Discord con Ctrl+V ✔'))
+        .catch(() => showToast('No se pudo copiar la imagen — probá "Descargar imagen" ✕'));
+    } catch (err) {
+      showToast('No se pudo copiar la imagen — probá "Descargar imagen" ✕');
+    }
+  };
+  actions.appendChild(copyImgBtn);
+
+  const dlBtn = document.createElement('button');
+  dlBtn.type = 'button';
+  dlBtn.className = 'ghost';
+  dlBtn.textContent = '⬇ Descargar imagen';
+  dlBtn.onclick = () => {
+    const safe = (title || 'invitacion').replace(/[^a-z0-9áéíóúñ_-]+/gi, '_').slice(0, 60) || 'invitacion';
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `invitacion_${safe}.png`;
+    a.click();
+  };
+  actions.appendChild(dlBtn);
+
+  const copyTextBtn = document.createElement('button');
+  copyTextBtn.type = 'button';
+  copyTextBtn.className = 'ghost';
+  copyTextBtn.textContent = '📋 Copiar texto';
+  copyTextBtn.onclick = () => {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('Texto copiado ✔'))
+      .catch(() => showToast('No se pudo copiar el texto ✕'));
+  };
+  actions.appendChild(copyTextBtn);
+
+  wrap.appendChild(actions);
+
+  if (syncData) wrap.appendChild(buildLiveSyncSection(syncData));
+}
+
+/* Función para cortar el listener de Firebase de la lista de anotados en
+   vivo que pueda haber quedado activo (se llama al generar una invitación
+   nueva o al cerrar el modal) — evita dejar listeners colgados escuchando
+   de más. */
+let stopSignupWatch = null;
+function stopActiveSignupWatch() {
+  if (stopSignupWatch) { stopSignupWatch(); stopSignupWatch = null; }
+}
+
+/* Arma el bloque "Sincronización en vivo con Discord" que va debajo de los
+   botones de copiar/descargar: si Firebase no está configurado en esta
+   página, muestra solo una nota explicando cómo activarlo; si sí lo está,
+   muestra el botón para publicar y, una vez publicado, la lista de quién
+   se anotó a cada rol actualizándose en vivo. */
+function buildLiveSyncSection({ title, when, notes, roster, channelId }) {
+  const box = document.createElement('div');
+  box.className = 'live-sync-box';
+
+  if (!FIREBASE_ENABLED) {
+    box.innerHTML = `<p class="live-sync-hint">🔌 La sincronización en vivo con Discord no está configurada en esta página — para activarla, completá <code>FIREBASE_CONFIG</code> en el archivo y tené el bot corriendo (ver <code>discord-bot/README.md</code>).</p>`;
+    return box;
+  }
+
+  const head = document.createElement('div');
+  head.className = 'live-sync-head';
+  head.innerHTML = `<b>🔴 Sincronización en vivo con Discord</b>`;
+  box.appendChild(head);
+
+  const publishBtn = document.createElement('button');
+  publishBtn.type = 'button';
+  publishBtn.className = 'primary';
+  publishBtn.textContent = '📡 Publicar y sincronizar con Discord';
+  box.appendChild(publishBtn);
+
+  const statusEl = document.createElement('div');
+  statusEl.className = 'live-sync-status';
+  box.appendChild(statusEl);
+
+  const boardEl = document.createElement('div');
+  boardEl.className = 'live-sync-board';
+  box.appendChild(boardEl);
+
+  function renderBoard(signups) {
+    boardEl.innerHTML = '';
+    const rolesPresentes = [...new Set(roster.map(s => s.role))];
+    rolesPresentes.forEach(role => {
+      const def = ROLES[role];
+      const people = signups && signups[role] ? Object.values(signups[role]) : [];
+      const row = document.createElement('div');
+      row.className = 'live-sync-role-row';
+      const namesText = people.length
+        ? people.map(p => p.username).join(', ')
+        : '— nadie anotado todavía —';
+      row.innerHTML = `<span class="live-sync-role-tag">${def.icon} ${def.label} (${people.length})</span><span class="live-sync-role-names">${namesText}</span>`;
+      boardEl.appendChild(row);
+    });
+  }
+
+  publishBtn.onclick = () => {
+    publishBtn.disabled = true;
+    publishBtn.textContent = '⏳ Publicando...';
+    statusEl.textContent = '';
+    publishEventToDiscord({ title, when, notes, roster, channelId }, (status) => {
+      if (status.state === 'waiting') {
+        statusEl.textContent = '⏳ Esperando que el bot lo publique en Discord...';
+      } else if (status.state === 'posted') {
+        statusEl.textContent = '✅ Publicado en Discord — reaccionando en el mensaje se anota la gente acá abajo en vivo.';
+        publishBtn.style.display = 'none';
+        stopActiveSignupWatch();
+        stopSignupWatch = watchEventSignups(status.eventId, renderBoard);
+      } else if (status.state === 'error') {
+        statusEl.textContent = `✕ ${status.message}`;
+        publishBtn.disabled = false;
+        publishBtn.textContent = '📡 Publicar y sincronizar con Discord';
+      }
+    });
+  };
+
+  return box;
+}
+
+function openModal(title, text) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalText').value = text;
+  document.getElementById('modalText').style.display = '';
+  document.getElementById('modalGuide').style.display = 'none';
+  document.getElementById('modalFoot').style.display = '';
+  document.getElementById('modalBox').classList.remove('wide');
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+/* Variante del modal que muestra HTML con títulos reales en vez de texto
+   plano — se usa para la Guía, donde la jerarquía visual importa más que
+   poder copiar el contenido. */
+function openGuideModal(title, html) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalText').style.display = 'none';
+  const guide = document.getElementById('modalGuide');
+  guide.style.display = '';
+  guide.innerHTML = html;
+  document.getElementById('modalFoot').style.display = 'none';
+  document.getElementById('modalBox').classList.add('wide');
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function pickerIcon(name, suffix) {
+  const box = document.createElement('span');
+  box.className = 'gear-picker-icon';
+  box.textContent = '❔';
+  const url = iconUrl(suffix);
+  if (url) {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = name;
+    img.onerror = () => { box.textContent = '❔'; };
+    box.textContent = '';
+    box.appendChild(img);
+  }
+  return box;
+}
+
+/* Modal para elegir manualmente una pieza de equipo (casco/capa/pecho/botas/
+   off-hand) para un jugador puntual, sin importar qué traiga su build por
+   defecto. `onSelect` recibe la clave elegida del catálogo, 'NONE' (solo si
+   allowNone) o null para volver al valor por defecto de la build. */
+function openGearPicker(pieceLabel, catalog, currentKey, allowNone, onSelect, showReset) {
+  document.getElementById('modalTitle').textContent = `Elegir ${pieceLabel}`;
+  document.getElementById('modalText').style.display = 'none';
+  const guide = document.getElementById('modalGuide');
+  guide.style.display = '';
+  guide.innerHTML = '';
+  document.getElementById('modalFoot').style.display = 'none';
+  document.getElementById('modalBox').classList.add('wide');
+
+  const close = () => document.getElementById('modalOverlay').classList.remove('show');
+
+  const actions = document.createElement('div');
+  actions.className = 'gear-picker-actions';
+  if (showReset !== false) {
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'ghost small';
+    resetBtn.textContent = '↺ Usar el de la build (por defecto)';
+    resetBtn.onclick = () => { onSelect(null); close(); };
+    actions.appendChild(resetBtn);
+  }
+  if (allowNone) {
+    const noneBtn = document.createElement('button');
+    noneBtn.type = 'button';
+    noneBtn.className = 'ghost small';
+    noneBtn.textContent = '— Sin off-hand';
+    noneBtn.onclick = () => { onSelect('NONE'); close(); };
+    actions.appendChild(noneBtn);
+  }
+  if (actions.children.length) guide.appendChild(actions);
+
+  function makeItem(key, name, suffix) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gear-picker-item' + (key === currentKey ? ' active' : '');
+    btn.appendChild(pickerIcon(name, suffix));
+    const nm = document.createElement('span');
+    nm.className = 'gear-picker-name';
+    nm.textContent = shortEsName(name);
+    btn.title = name;
+    btn.appendChild(nm);
+    btn.onclick = () => { onSelect(key); close(); };
+    return btn;
+  }
+
+  // El catálogo puede venir agrupado (array de {label, entries}) — por
+  // familia de arma o por material/facción de armadura — o plano (dict
+  // simple, como las capas). Agrupado: se muestra un título por sección
+  // para que "se desplieguen separadas por los diferentes tipos que hay".
+  if (Array.isArray(catalog)) {
+    catalog.forEach(group => {
+      const keys = Object.keys(group.entries);
+      if (!keys.length) return;
+      const h = document.createElement('div');
+      h.className = 'gear-picker-group-title';
+      h.textContent = group.label;
+      guide.appendChild(h);
+      const grid = document.createElement('div');
+      grid.className = 'gear-picker-grid';
+      keys.forEach(key => {
+        const [name, suffix] = group.entries[key];
+        grid.appendChild(makeItem(key, name, suffix));
+      });
+      guide.appendChild(grid);
+    });
+  } else {
+    const grid = document.createElement('div');
+    grid.className = 'gear-picker-grid';
+    Object.keys(catalog).forEach(key => {
+      const [name, suffix] = catalog[key];
+      grid.appendChild(makeItem(key, name, suffix));
+    });
+    guide.appendChild(grid);
+  }
+
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+/* ---------------- Tema claro / oscuro ---------------- */
+let theme = 'dark';
+function applyTheme() {
+  const btn = document.getElementById('btnTheme');
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    btn.textContent = '☀️ Claro';
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    btn.textContent = '🌙 Oscuro';
+  }
+}
+
+/* Refleja el nombre del gremio en el título de la pestaña, el chip del
+   header y el pie de página, para que se note claramente de qué gremio
+   es la herramienta. */
+function updateGuildBranding() {
+  const name = (state.guildName || 'PVPX').trim() || 'PVPX';
+  document.title = `${name} — Compositor de Grupos · Albion Online`;
+  const brand = document.getElementById('brandTitle');
+  if (brand) brand.textContent = name.toUpperCase();
+}
+
+/* ---------------- Eventos globales ---------------- */
+document.addEventListener('DOMContentLoaded', () => {
+  // Recupera el autoguardado de este navegador (si existe) antes del primer
+  // render, así se retoma exactamente donde se dejó la última vez.
+  const saved = loadFromStorage();
+  if (saved) applyState(saved);
+
+  updateGuildBranding();
+
+  document.getElementById('btnTheme').onclick = () => {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    applyTheme();
+  };
+  applyTheme();
+
+  document.getElementById('btnCopy').onclick = () => {
+    openModal('Composición lista para Discord', textReport());
+  };
+  document.getElementById('btnInvite').onclick = () => {
+    if (!currentInvitationRoster()) {
+      showToast('La invitación está disponible en Composición y Avalón — elegí una build primero');
+      return;
+    }
+    openInvitationModal();
+  };
+  document.getElementById('btnExport').onclick = () => {
+    const guild = (state.guildName || 'gremio').replace(/[^a-z0-9áéíóúñ_-]+/gi, '_');
+    downloadFile(`albion_composicion_${guild}.json`, serializeState(), 'application/json');
+    showToast('Archivo exportado ✔');
+  };
+  document.getElementById('btnImportTrigger').onclick = () => {
+    document.getElementById('btnImport').click();
+  };
+  document.getElementById('btnImport').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        applyState(data);
+        updateGuildBranding();
+        renderAll();
+        showToast('Composición importada ✔');
+      } catch (err) {
+        showToast('Error al leer el archivo ✕');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  document.getElementById('btnReset').onclick = () => {
+    if (state.mode === 'balance') { showToast('El balance no se reinicia desde acá — quitá jugadores uno por uno con el ✕'); return; }
+    if (SOLO_MODES.includes(state.mode)) {
+      if (!confirm('¿Restaurar el equipamiento por defecto de la build de esta pestaña? Se perderán el arma y las piezas que hayas cambiado a mano.')) return;
+      SOLO_BUILDS[state.mode].forEach(b => { state.soloOverrides[b.id] = { gear: {}, weapon: null }; });
+      renderPanel();
+      return;
+    }
+    if (!confirm('¿Reiniciar ESTA build a la plantilla sugerida? Se perderán los cambios de equipo hechos en esta build. (No afecta a tus otras builds guardadas, ni al Balance, ni a Solitario.)')) return;
+    const entry = currentCompEntry();
+    if (entry) entry.roster = buildSlotsFromTemplate(defaultTemplateFor(state.mode));
+    renderPanel();
+  };
+
+  document.getElementById('btnHelp').onclick = () => {
+    const rolesHtml = ROLE_KEYS.map(k => {
+      const def = ROLES[k];
+      const accent = ROLE_ACCENT[k] || 'var(--red)';
+      return `<div class="guide-role-item" style="--accent:${accent}">
+        <div class="guide-role-head"><span>${def.icon}</span><b>${def.label}</b></div>
+        <div class="guide-role-desc">${def.desc}</div>
+        <div class="guide-role-armor"><b>Armadura base:</b> ${def.armor}</div>
+      </div>`;
+    }).join('');
+
+    const doctrinesHtml = Object.keys(ZVZ_VARIANTS).map(k => {
+      const v = ZVZ_VARIANTS[k];
+      return `<div class="guide-mode-item"><b>${v.icon} ${v.label}</b> — ${v.desc}</div>`;
+    }).join('');
+
+    const modesHtml = `
+      <div class="guide-mode-item"><b>⚔️ ZVZ</b> — ${MODES.zvz.desc}. Podés crear hasta 4 grupos para un mismo evento (40/60/80 jugadores).</div>
+      <div class="guide-mode-item"><b>🛡️ Grupales</b> — ${MODES.grupal.desc} (small-scale, hellgates, roads).</div>
+      <div class="guide-mode-item"><b>⭐ Estática</b> — ${MODES.estatica.desc}.</div>
+    `;
+
+    const html = `
+      <h4>Roles</h4>
+      <div class="guide-roles">${rolesHtml}</div>
+      <h4>Modalidades</h4>
+      ${modesHtml}
+      <h4>Doctrinas ZVZ</h4>
+      ${doctrinesHtml}
+      <h4>Balance de jugadores</h4>
+      <div class="guide-mode-item">💰 Registrá el saldo de plata de cada miembro del gremio: sumalo cuando se reparte loot, restalo cuando alguien retira, y consultá el historial completo de movimientos de cada jugador — todo desde la pestaña <b>Balance</b> del menú principal.</div>
+      <h4>Equipo de cada build</h4>
+      <div class="guide-note">Cada build incluye arma, casco, pecho, botas y capa sugeridos, con íconos oficiales de Albion Online. Podés cambiar cualquier pieza desde los selects de cada tarjeta según lo que tenga disponible cada jugador.</div>
+    `;
+    openGuideModal('Guía rápida de roles y doctrinas', html);
+  };
+
+  document.getElementById('modalClose').onclick = () => { document.getElementById('modalOverlay').classList.remove('show'); stopActiveSignupWatch(); };
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modalOverlay') { e.currentTarget.classList.remove('show'); stopActiveSignupWatch(); }
+  });
+  document.getElementById('modalCopyBtn').onclick = () => {
+    const ta = document.getElementById('modalText');
+    ta.select();
+    navigator.clipboard.writeText(ta.value).then(() => showToast('Copiado al portapapeles ✔'))
+      .catch(() => { document.execCommand('copy'); showToast('Copiado al portapapeles ✔'); });
+  };
+
+  renderAll();
+});
+
+</script>
+</body>
+</html>
