@@ -96,10 +96,34 @@
     text-shadow:0 0 22px rgba(200,16,46,.65), 0 2px 0 rgba(0,0,0,.4);
   }
   .brand-titles .sub{font-size:12px;color:var(--grey);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+  .sync-badge{
+    font-size:11.5px;font-weight:700;letter-spacing:.4px;
+    padding:4px 10px;border-radius:20px;flex-shrink:0;white-space:nowrap;
+    background:color-mix(in srgb, #2ecc71 16%, transparent);
+    color:#2ecc71;border:1px solid color-mix(in srgb, #2ecc71 40%, transparent);
+  }
+  .sync-badge.offline{
+    background:color-mix(in srgb, #e0a72a 16%, transparent);
+    color:#e0a72a;border-color:color-mix(in srgb, #e0a72a 40%, transparent);
+  }
 
   .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .toolbar-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .toolbar-divider{width:1px;align-self:stretch;min-height:22px;background:var(--border);}
+
+  /* Botón ☰ que reemplaza el toolbar en celular (ver @media más abajo) —
+     oculto en desktop, donde el toolbar entero se ve siempre. */
+  .mobile-menu-btn{
+    display:none;
+    width:42px;height:42px;flex-shrink:0;
+    align-items:center;justify-content:center;
+    background:var(--panel);border:1px solid var(--border);border-radius:9px;
+    color:var(--white);font-size:19px;line-height:1;cursor:pointer;
+    transition:.15s;
+  }
+  .mobile-menu-btn:hover{border-color:var(--red);background:var(--panel-2);}
+  .mobile-menu-btn[aria-expanded="true"]{border-color:var(--red);color:var(--red-bright);}
+  .mobile-menu-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:45;}
   button, .btn{
     font-family:'Rajdhani',sans-serif;
     font-weight:600;
@@ -248,6 +272,11 @@
     transform:translateY(-1px);
   }
   .group-tab .count{opacity:.8;font-size:11px;}
+  /* Doctrina (Kite/Brawl) sin sesión iniciada — se ve pero avisa que está
+     bloqueada en vez de comportarse como si nada (el click igual no hace
+     nada, esto es solo para que no parezca roto). */
+  .group-tab.locked{opacity:.55;cursor:not-allowed;}
+  .group-tab.locked:hover{background:transparent;color:var(--grey);}
   .tab-rename-btn{
     background:rgba(255,255,255,.08);border:none;color:inherit;opacity:.75;cursor:pointer;
     font-size:11px;line-height:1;padding:4px 6px;border-radius:8px;transition:.14s;
@@ -811,6 +840,17 @@
   .bal-hist-date{font-size:12px;color:var(--grey-dim);}
   .bal-hist-note{font-size:13px;color:var(--grey);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px;}
 
+  /* ---------- Pestaña "Respaldos" (solo admin) ---------- */
+  .backup-list{display:flex;flex-direction:column;gap:8px;}
+  .backup-row{
+    display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+    background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--red);
+    border-radius:9px;padding:11px 14px;
+  }
+  .backup-row-date{font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:var(--white);}
+  .backup-row-meta{font-size:12.5px;color:var(--grey-dim);margin-top:2px;}
+  .backup-row-actions{display:flex;gap:6px;flex-shrink:0;}
+
   footer{
     text-align:center;color:var(--grey-dim);font-size:11.5px;padding:24px;
   }
@@ -936,15 +976,42 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
 
   @media (max-width:640px){
-    header.top{padding:14px;gap:12px;}
+    header.top{padding:12px 14px;gap:10px;flex-wrap:nowrap;position:relative;}
     .mode-bar,main{padding-left:14px;padding-right:14px;}
-    .brand-titles h1{font-size:22px;letter-spacing:1.5px;}
-    .brand-titles .sub{font-size:10.5px;letter-spacing:1.2px;}
-    .crest{width:48px;height:48px;font-size:22px;}
-    .toolbar{gap:6px;}
-    .toolbar-group{gap:6px;}
-    .toolbar-divider{display:none;}
-    .toolbar button{padding:7px 10px;font-size:12px;}
+    .brand-block{gap:12px;min-width:0;}
+    .brand-titles{min-width:0;}
+    .brand-titles h1{font-size:19px;letter-spacing:1px;white-space:nowrap;}
+    .brand-titles .sub{font-size:9.5px;letter-spacing:.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .crest{width:42px;height:42px;font-size:19px;}
+    .sync-badge{display:none;}
+
+    /* El toolbar entero se colapsa detrás del botón ☰: pasa de fila de
+       botones apretados a un menú desplegable prolijo, anclado bajo el
+       header, con los mismos grupos separados por una línea divisoria en
+       vez de la barra vertical que usa en desktop. */
+    .mobile-menu-btn{display:flex;}
+    .toolbar{
+      display:none;
+      position:absolute;top:calc(100% + 8px);right:12px;left:12px;
+      flex-direction:column;align-items:stretch;gap:0;
+      background:var(--panel);border:1px solid var(--border);
+      border-radius:12px;padding:8px;
+      box-shadow:0 16px 38px rgba(0,0,0,.5);
+      z-index:50;
+    }
+    .toolbar.mobile-open{display:flex;}
+    .mobile-menu-backdrop.show{display:block;}
+    .toolbar-group{flex-direction:column;align-items:stretch;gap:2px;}
+    .toolbar-divider{display:block;width:auto;height:1px;min-height:0;background:var(--border);margin:7px 4px;}
+    .toolbar button{
+      width:100%;justify-content:flex-start;
+      padding:12px 12px;font-size:14px;border-radius:8px;
+      background:transparent;border-color:transparent;
+    }
+    .toolbar button:hover{background:var(--panel-2);}
+    .toolbar button.primary{background:var(--red);border-color:var(--red);color:#fff;}
+    .toolbar button.primary:hover{background:var(--red-bright);}
+
     .mode-item{padding:9px 15px;font-size:13px;}
     .mode-item span:first-child{font-size:15px;}
     .submode-item{padding:6px 13px;font-size:12px;}
@@ -974,16 +1041,22 @@
       <h1 id="brandTitle">PVPX</h1>
       <div class="sub">Compositor de Grupos · Albion Online</div>
     </div>
+    <span class="sync-badge" id="syncBadge" hidden>🔄 En vivo</span>
   </div>
-  <div class="toolbar">
+  <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Abrir menú" aria-expanded="false">☰</button>
+  <div class="toolbar" id="toolbar">
+    <div class="toolbar-group">
+      <button class="ghost small" id="btnAuth">🔒 Ingresar</button>
+    </div>
+    <div class="toolbar-divider"></div>
     <div class="toolbar-group">
       <button class="ghost" id="btnCopy">📋 Copiar para Discord</button>
       <button class="ghost" id="btnInvite" title="Genera una tarjeta de invitación con la build actual para pegar en Discord">🎉 Invitación</button>
     </div>
     <div class="toolbar-divider"></div>
     <div class="toolbar-group">
-      <button class="ghost small" id="btnExport" title="Descargar esta composición como archivo">⬇ Exportar</button>
-      <button class="ghost small" id="btnImportTrigger" title="Cargar una composición desde un archivo">⬆ Importar</button>
+      <button class="ghost small" id="btnExport" title="Descarga un respaldo completo: TODAS tus composiciones (ZVZ/Grupales/Estática/Avalón), el Balance, tus builds guardadas y las habilidades elegidas — guardalo antes de actualizar la página">⬇ Exportar todo</button>
+      <button class="ghost small" id="btnImportTrigger" title="Carga un respaldo .json exportado desde acá — se suma a lo que ya tenés, no lo borra">⬆ Importar todo</button>
       <input type="file" id="btnImport" accept="application/json">
     </div>
     <div class="toolbar-divider"></div>
@@ -993,6 +1066,7 @@
       <button class="primary small" id="btnReset">🗑 Limpiar</button>
     </div>
   </div>
+  <div class="mobile-menu-backdrop" id="mobileMenuBackdrop"></div>
 </header>
 
 <nav class="mode-bar" id="modeBar"></nav>
@@ -12527,6 +12601,7 @@ const MODES = {
   avalon_dorado: { label: 'Dorado', icon: '🟡', desc: 'Cofre Dorado de los Caminos Avalonianos — jefe de mundo abierto, conviene grupo de gremio (7) para abrirlo rápido. Meta ago-2026 (Radiant Wilds), estimación propia en base a guías de la comunidad — no son datos oficiales.', max: 7 },
   balance: { label: 'Balance', icon: '💰', desc: 'Saldo de plata por jugador — sumá, restá y consultá el balance de cada miembro del gremio.', max: null },
   builds: { label: 'Builds', icon: '📚', desc: '"Mis builds": armá y guardá las builds propias del gremio, sin límite, con etiquetas para buscarlas. Más abajo, el catálogo de referencia con todas las builds de la herramienta — arma + set completo, filtrable por rol o tipo de arma y copiable para Discord (ese catálogo no es editable).', max: null },
+  backups: { label: 'Respaldos', icon: '🗄️', desc: 'Historial de respaldos exportados con "⬇ Exportar todo" desde este navegador — solo visible para admin.', max: null },
 };
 
 /* ---------------- Build en solitario (PvE / PvP) ----------------
@@ -12712,10 +12787,14 @@ const SECTIONS = {
   avalon: { label: 'Avalón', icon: '🔷', subModes: AVALON_MODES, lastKey: 'lastAvalonMode', fallback: 'avalon_azul' },
   balance: { label: 'Balance', icon: '💰' },
   builds: { label: 'Builds', icon: '📚' },
+  /* Solo aparece en el menú (ver renderModeBar) cuando hay sesión iniciada
+     como "admin" — el resto del gremio ni la ve. */
+  backups: { label: 'Respaldos', icon: '🗄️' },
 };
 function currentSection() {
   if (state.mode === 'balance') return 'balance';
   if (state.mode === 'builds') return 'builds';
+  if (state.mode === 'backups') return 'backups';
   if (SOLO_MODES.includes(state.mode)) return 'solo';
   if (AVALON_MODES.includes(state.mode)) return 'avalon';
   return 'comp';
@@ -12728,6 +12807,7 @@ function renderModeBar() {
   const menu = document.createElement('div');
   menu.className = 'mode-menu';
   for (const key of Object.keys(SECTIONS)) {
+    if (key === 'backups' && !isAdminUser()) continue;
     const s = SECTIONS[key];
     const item = document.createElement('button');
     item.type = 'button';
@@ -12735,7 +12815,7 @@ function renderModeBar() {
     item.innerHTML = `<span>${s.icon}</span><span>${s.label}</span>`;
     item.onclick = () => {
       if (currentSection() === key) return;
-      if (key === 'balance' || key === 'builds') {
+      if (key === 'balance' || key === 'builds' || key === 'backups') {
         state.mode = key;
       } else {
         state.mode = state[s.lastKey] || s.fallback;
@@ -12778,11 +12858,12 @@ function buildZvzVariantBar() {
   for (const key of Object.keys(ZVZ_VARIANTS)) {
     const v = ZVZ_VARIANTS[key];
     const tab = document.createElement('div');
-    tab.className = 'group-tab' + (state.zvzVariant === key ? ' active' : '');
-    tab.title = v.desc;
+    tab.className = 'group-tab' + (state.zvzVariant === key ? ' active' : '') + (isEditor() ? '' : ' locked');
+    tab.title = isEditor() ? v.desc : '🔒 Iniciá sesión para cambiar la doctrina';
     tab.innerHTML = `${v.icon} ${v.label}`;
     tab.onclick = () => {
       if (state.zvzVariant === key) return;
+      if (!requireEditor('cambiar la doctrina')) return;
       const ok = confirm(`¿Aplicar la doctrina "${v.label}" a TODOS los grupos ZVZ guardados? Se perderán los nombres de jugador asignados (los nombres de las builds se mantienen).`);
       if (!ok) return;
       state.zvzVariant = key;
@@ -12803,6 +12884,7 @@ function buildZvzVariantBar() {
    encabezado, para cubrir el caso de eventos donde no se completan todos
    los roles hasta el máximo establecido. */
 function addPlayerSlot() {
+  if (!requireEditor('agregar jugadores')) return;
   const max = state.mode === 'zvz' ? 20 : MODES[state.mode].max;
   const r = currentRoster();
   if (r.length >= max) { showToast(`Ya alcanzaste el máximo de ${max} jugadores`); return; }
@@ -12811,6 +12893,7 @@ function addPlayerSlot() {
   renderPanel();
 }
 function removeLastPlayerSlot() {
+  if (!requireEditor('quitar jugadores')) return;
   const r = currentRoster();
   if (!r.length) { showToast('No hay jugadores para quitar'); return; }
   r.pop();
@@ -12820,6 +12903,13 @@ function removeLastPlayerSlot() {
 
 /* ---------------- Render: panel principal ---------------- */
 function renderPanel() {
+  // Si quedó guardado state.mode === 'backups' de una sesión de admin
+  // anterior pero ya no hay sesión de admin activa (se cerró sesión, o se
+  // abrió el archivo/respaldo en otro dispositivo), no se puede quedar
+  // mostrando esa pestaña — se manda a Composición como si nunca hubiese
+  // estado ahí.
+  if (state.mode === 'backups' && !isAdminUser()) state.mode = state.lastCompMode || 'zvz';
+
   saveToStorage();
   const panel = document.getElementById('panel');
   panel.innerHTML = '';
@@ -12831,6 +12921,11 @@ function renderPanel() {
 
   if (state.mode === 'builds') {
     panel.appendChild(buildBuildsLibraryPanel());
+    return;
+  }
+
+  if (state.mode === 'backups') {
+    panel.appendChild(buildBackupsPanel());
     return;
   }
 
@@ -12868,6 +12963,8 @@ function renderPanel() {
   panel.appendChild(head);
   head.querySelector('#quickAdd').onclick = addPlayerSlot;
   head.querySelector('#quickRemove').onclick = removeLastPlayerSlot;
+  head.querySelector('#quickAdd').disabled = !isEditor();
+  head.querySelector('#quickRemove').disabled = !isEditor();
 
   const grid = document.createElement('div');
   grid.className = 'grid' + (state.mode === 'zvz' ? ' grid-row' : '');
@@ -12876,6 +12973,7 @@ function renderPanel() {
   if (roster.length < max) {
     const addCard = document.createElement('button');
     addCard.className = 'add-slot-card';
+    addCard.disabled = !isEditor();
     addCard.innerHTML = '+ Agregar jugador';
     addCard.onclick = addPlayerSlot;
     grid.appendChild(addCard);
@@ -12953,8 +13051,10 @@ function buildCompTabBar() {
     renameBtn.className = 'tab-rename-btn';
     renameBtn.textContent = '✎';
     renameBtn.title = 'Renombrar esta build';
+    renameBtn.disabled = !isEditor();
     renameBtn.onclick = (e) => {
       e.stopPropagation();
+      if (!requireEditor('renombrar builds')) return;
       const nn = prompt('Nombre para esta build:', entry.name);
       if (nn === null) return;
       const clean = nn.trim();
@@ -12970,7 +13070,9 @@ function buildCompTabBar() {
     const addBtn = document.createElement('button');
     addBtn.className = 'small ghost';
     addBtn.textContent = '+ Nueva build';
+    addBtn.disabled = !isEditor();
     addBtn.onclick = () => {
+      if (!requireEditor('crear builds')) return;
       const suggested = defaultCompName(mode);
       const nn = prompt('Nombre para la nueva build:', suggested);
       if (nn === null) return;
@@ -12985,7 +13087,9 @@ function buildCompTabBar() {
       dupBtn.className = 'small ghost';
       dupBtn.title = 'Crea una copia de la build actual (mismo roster completo) para usar como punto de partida';
       dupBtn.textContent = '⧉ Duplicar build actual';
+      dupBtn.disabled = !isEditor();
       dupBtn.onclick = () => {
+        if (!requireEditor('duplicar builds')) return;
         const current = bucket.list[bucket.active];
         const suggested = `${current.name} (copia)`;
         const nn = prompt('Nombre para la copia:', suggested);
@@ -13007,7 +13111,9 @@ function buildCompTabBar() {
     const delBtn = document.createElement('button');
     delBtn.className = 'small ghost';
     delBtn.textContent = '🗑 Eliminar build actual';
+    delBtn.disabled = !isEditor();
     delBtn.onclick = () => {
+      if (!requireEditor('eliminar builds')) return;
       if (!confirm(`¿Eliminar la build "${bucket.list[bucket.active].name}"? Esta acción no se puede deshacer.`)) return;
       bucket.list.splice(bucket.active, 1);
       bucket.active = Math.max(0, bucket.active - 1);
@@ -13202,8 +13308,10 @@ function buildSlotCard(slot, idx) {
   const removeBtn = document.createElement('button');
   removeBtn.className = 'remove-slot';
   removeBtn.textContent = '✕';
-  removeBtn.title = 'Quitar jugador';
+  removeBtn.title = isEditor() ? 'Quitar jugador' : '🔒 Iniciá sesión para quitar jugadores';
+  removeBtn.disabled = !isEditor();
   removeBtn.onclick = () => {
+    if (!requireEditor('quitar jugadores')) return;
     const r = currentRoster();
     r.splice(idx, 1);
     setCurrentRoster(r);
@@ -13225,6 +13333,7 @@ function buildSlotCard(slot, idx) {
 
   const roleSelect = document.createElement('select');
   roleSelect.className = 'role-select';
+  roleSelect.disabled = !isEditor();
   ROLE_KEYS.forEach(k => {
     const opt = document.createElement('option');
     opt.value = k;
@@ -13233,6 +13342,7 @@ function buildSlotCard(slot, idx) {
     roleSelect.appendChild(opt);
   });
   roleSelect.onchange = () => {
+    if (!requireEditor('cambiar el rol')) { renderPanel(); return; }
     slot.role = roleSelect.value;
     slot.weaponIdx = 0;
     slot.customWeapon = null;
@@ -13252,6 +13362,7 @@ function buildSlotCard(slot, idx) {
   if (state.mode !== 'zvz') {
     const weaponSelect = document.createElement('select');
     weaponSelect.className = 'weapon-select';
+    weaponSelect.disabled = !isEditor();
     const defaultWeapon = def.weapons[slot.weaponIdx] || def.weapons[0];
     const defaultOpt = document.createElement('option');
     defaultOpt.value = '';
@@ -13271,6 +13382,7 @@ function buildSlotCard(slot, idx) {
     });
     weaponSelect.value = slot.customWeapon ? weapon.name : '';
     weaponSelect.onchange = () => {
+      if (!requireEditor('cambiar el arma')) { renderPanel(); return; }
       const key = weaponSelect.value;
       if (!key) {
         slot.customWeapon = null;
@@ -13492,6 +13604,7 @@ function saveAbilityPick(weaponU, slotKey, pickId) {
   } catch (err) { /* localStorage no disponible (modo privado, cuota llena, etc.) */ }
 }
 function selectAbility(weaponU, slotKey, pickId, el) {
+  if (!requireEditor('elegir habilidades')) return;
   saveAbilityPick(weaponU, slotKey, pickId);
   const list = el.closest('.ability-list');
   if (list) list.querySelectorAll('.ability-item').forEach(li => li.classList.remove('chosen'));
@@ -13722,8 +13835,9 @@ function buildCustomBuildCard(cb) {
   const title = document.createElement('div');
   title.className = 'lib-card-title my-build-title';
   title.textContent = cb.name;
-  title.title = 'Click para renombrar';
+  title.title = isEditor() ? 'Click para renombrar' : '🔒 Iniciá sesión para renombrar';
   title.onclick = () => {
+    if (!requireEditor('renombrar builds')) return;
     const nn = prompt('Nombre para esta build:', cb.name);
     if (nn === null) return;
     cb.name = nn.trim() || cb.name;
@@ -13736,7 +13850,9 @@ function buildCustomBuildCard(cb) {
     delBtn.className = 'my-build-del';
     delBtn.textContent = '🗑';
     delBtn.title = 'Eliminar esta build';
+    delBtn.disabled = !isEditor();
     delBtn.onclick = () => {
+      if (!requireEditor('eliminar builds')) return;
       if (!confirm(`¿Eliminar la build "${cb.name}"? Esta acción no se puede deshacer.`)) return;
       state.customBuilds = state.customBuilds.filter(x => x.id !== cb.id);
       renderPanel();
@@ -13758,7 +13874,9 @@ function buildCustomBuildCard(cb) {
   tagBtn.className = 'my-build-tag-add';
   tagBtn.textContent = (cb.tags && cb.tags.length) ? '✎ etiquetas' : '+ etiqueta';
   tagBtn.title = 'Editar etiquetas (separadas por coma) — sirven para buscar esta build después';
+  tagBtn.disabled = !isEditor();
   tagBtn.onclick = () => {
+    if (!requireEditor('editar etiquetas')) return;
     const nn = prompt('Etiquetas para esta build, separadas por coma (ej: zvz, tank, avalón):', (cb.tags || []).join(', '));
     if (nn === null) return;
     cb.tags = parseTagsInput(nn);
@@ -13903,7 +14021,9 @@ function buildMyBuildsSection() {
   addBtn.className = 'small ghost my-build-add-btn';
   addBtn.textContent = '+ Agregar build';
   addBtn.title = 'Crear otra build propia — sin límite';
+  addBtn.disabled = !isEditor();
   addBtn.onclick = () => {
+    if (!requireEditor('crear builds')) return;
     state.customBuilds.push(newCustomBuild(`Mi build ${state.customBuilds.length + 1}`));
     renderPanel();
   };
@@ -14087,12 +14207,18 @@ function buildBalancePanel() {
   wrap.appendChild(addRow);
   const nameInput = addRow.querySelector('#balNewName');
   const doAddPlayer = () => {
+    if (!requireEditor('agregar jugadores al balance')) return;
     const p = addBalancePlayer(nameInput.value);
     if (p) { renderPanel(); showToast(`${p.name} agregado al balance ✔`); }
     else showToast('Escribí un nombre válido');
   };
   addRow.querySelector('#balAddPlayerBtn').onclick = doAddPlayer;
   nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAddPlayer(); });
+  // A diferencia del nombre en un casillero de la composición, este campo
+  // SÍ requiere sesión — acá se está dando de alta gente nueva en el
+  // balance de plata del gremio, no anotándose uno mismo en un rol.
+  nameInput.disabled = !isEditor();
+  addRow.querySelector('#balAddPlayerBtn').disabled = !isEditor();
 
   if (!state.balances.length) {
     const empty = document.createElement('div');
@@ -14116,8 +14242,16 @@ function buildBalancePanel() {
     </div>
   `;
   wrap.appendChild(moveCard);
+  if (!isEditor()) {
+    moveCard.querySelector('#balMovePlayer').disabled = true;
+    moveCard.querySelector('#balMoveAmount').disabled = true;
+    moveCard.querySelector('#balMoveNote').disabled = true;
+    moveCard.querySelector('#balAddBtn').disabled = true;
+    moveCard.querySelector('#balSubBtn').disabled = true;
+  }
 
   function doMove(sign) {
+    if (!requireEditor('registrar movimientos de balance')) return;
     const playerId = moveCard.querySelector('#balMovePlayer').value;
     const amount = Math.abs(Number(moveCard.querySelector('#balMoveAmount').value));
     const note = moveCard.querySelector('#balMoveNote').value;
@@ -14182,7 +14316,9 @@ function buildBalancePanel() {
       `;
       openGuideModal('Historial de movimientos', html);
     };
+    row.querySelector('.balDelBtn').disabled = !isEditor();
     row.querySelector('.balDelBtn').onclick = () => {
+      if (!requireEditor('quitar jugadores del balance')) return;
       if (!confirm(`¿Quitar a ${p.name} del balance? Se perderá su historial.`)) return;
       removeBalancePlayer(p.id);
       renderPanel();
@@ -14195,6 +14331,7 @@ function buildBalancePanel() {
 }
 
 function renderAll() {
+  updateAuthUI();
   renderModeBar();
   renderPanel();
 }
@@ -14213,6 +14350,11 @@ function serializeState() {
     balances: state.balances,
     soloOverrides: state.soloOverrides,
     customBuilds: state.customBuilds,
+    /* Habilidades elegidas por arma (ver ABILITY_PICK_KEY) — viven en una
+       clave de localStorage aparte, pero se suman acá para que el respaldo
+       de "Exportar todo" sea realmente TODO lo que se haya hecho en la
+       herramienta, no solo las composiciones. */
+    abilityPicks: loadAbilityPicks(),
   }, null, 2);
 }
 
@@ -14270,19 +14412,35 @@ function applyState(data) {
       }
     });
   }
+  /* abilityPicks también se SUMA (no reemplaza) — mismo criterio que
+     customBuilds: importar un respaldo no debe borrar habilidades que ya
+     habías elegido en este dispositivo para otras armas. */
+  if (data.abilityPicks && typeof data.abilityPicks === 'object') {
+    try {
+      const current = loadAbilityPicks();
+      Object.keys(data.abilityPicks).forEach(weaponU => {
+        current[weaponU] = Object.assign({}, current[weaponU], data.abilityPicks[weaponU]);
+      });
+      localStorage.setItem(ABILITY_PICK_KEY, JSON.stringify(current));
+    } catch (err) { /* localStorage no disponible */ }
+  }
 }
 
 /* ---------------- Autoguardado en el navegador ----------------
-   Como esta herramienta se piensa para subir a un servidor propio (sin
-   backend), el único lugar donde "guardar" tiene sentido es el navegador de
-   quien la usa: localStorage. Cada cambio se autoguarda ahí, así que al
-   cerrar la pestaña y volver a abrirla (o recargar la página) todo sigue
-   como estaba. Esto es local a ESE navegador/dispositivo — no es un backend
-   compartido — por eso además queda el botón "Exportar" para bajar un
-   respaldo en .json que se puede guardar aparte o pasarle a otra persona. */
+   El autoguardado en localStorage de este navegador queda SIEMPRE activo,
+   esté o no Firebase configurado: es lo que hace que al cerrar la pestaña
+   y volver a abrirla todo siga como estaba, y además sirve de respaldo por
+   si en algún momento no hay conexión con Firebase. Cuando FIREBASE_ENABLED
+   está activo, cada guardado además dispara (con un pequeño debounce) una
+   sincronización hacia el resto del gremio — ver scheduleSyncPush() más
+   abajo, junto al resto de la sección de Firebase. Si Firebase no está
+   configurado, ese paso extra simplemente no hace nada y esto se comporta
+   exactamente como el autoguardado 100% local de siempre: por eso queda
+   además el botón "Exportar" para bajar un respaldo en .json a mano. */
 const STORAGE_KEY = 'pvpx_albion_comp_state_v2';
 function saveToStorage() {
   try { localStorage.setItem(STORAGE_KEY, serializeState()); } catch (err) { /* localStorage no disponible (modo privado, cuota llena, etc.) — se sigue usando la app sin autoguardado */ }
+  scheduleSyncPush();
 }
 function loadFromStorage() {
   try {
@@ -14308,6 +14466,282 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ---------------- Usuarios / modo solo-lectura ----------------
+   Esta herramienta es un solo archivo HTML sin backend: cualquier "login"
+   acá es una traba de INTERFAZ para que el resto del gremio no reordene
+   la comp sin querer — NO es seguridad real. El código de esta página
+   (contraseñas incluidas) queda a la vista de cualquiera que abra las
+   herramientas de desarrollador del navegador o mire el archivo. Sirve
+   para evitar ediciones accidentales, no para proteger algo sensible.
+
+   - Sin sesión iniciada: se puede navegar libremente entre pestañas y
+     escribir el propio nombre en un casillero de jugador de la
+     composición, pero no se puede tocar nada más (roles, armas, equipo,
+     builds, balance, doctrina, etc.)
+   - "pvpx": acceso de edición completo a todo.
+   - "admin": lo mismo que "pvpx" más la pestaña "Respaldos" — guarda una
+     copia de cada "Exportar todo" hecho con sesión iniciada, para bajarla
+     de nuevo después. Ese historial también es 100% local a ESTE
+     navegador — no se sincroniza entre dispositivos distintos. */
+const AUTH_USERS = {
+  pvpx: { password: 'PVPX-Gremio26', role: 'editor', label: 'PVPX' },
+  admin: { password: 'admin0026%', role: 'admin', label: 'admin' },
+};
+const AUTH_KEY = 'pvpx_auth_user';
+function currentAuthUser() {
+  try {
+    const u = localStorage.getItem(AUTH_KEY);
+    return (u && AUTH_USERS[u]) ? u : null;
+  } catch (err) { return null; }
+}
+function isEditor() { return currentAuthUser() !== null; }
+function isAdminUser() { return currentAuthUser() === 'admin'; }
+function doLogin(username, password) {
+  const key = (username || '').trim().toLowerCase();
+  const u = AUTH_USERS[key];
+  if (!u || u.password !== password) return false;
+  try { localStorage.setItem(AUTH_KEY, key); } catch (err) {}
+  return true;
+}
+function doLogout() {
+  try { localStorage.removeItem(AUTH_KEY); } catch (err) {}
+}
+/* Guardia genérica para cualquier acción que modifique datos: si no hay
+   sesión iniciada, avisa con un toast y corta la acción (return false). */
+function requireEditor(actionLabel) {
+  if (isEditor()) return true;
+  showToast(`🔒 Iniciá sesión para ${actionLabel || 'editar'}`);
+  return false;
+}
+/* Refleja la sesión activa en el botón del header — se llama al cargar la
+   página y cada vez que hay un renderAll() (login/logout/cambio de
+   pestaña), así el botón nunca queda desincronizado de la sesión real. */
+function updateAuthUI() {
+  const btn = document.getElementById('btnAuth');
+  if (!btn) return;
+  const u = currentAuthUser();
+  if (!u) {
+    btn.textContent = '🔒 Ingresar';
+    btn.title = 'Iniciar sesión para poder editar — sin sesión, la herramienta queda en modo solo lectura (salvo anotar tu nombre en un casillero)';
+    btn.classList.remove('primary');
+  } else {
+    const label = AUTH_USERS[u].label;
+    const icon = u === 'admin' ? '👑' : '🔓';
+    btn.textContent = `${icon} ${label} · Salir`;
+    btn.title = 'Click para cerrar sesión';
+    btn.classList.add('primary');
+  }
+}
+
+/* ---------------- Historial de respaldos (solo lo ve "admin") ----------------
+   Cada vez que alguien CON SESIÓN INICIADA usa "⬇ Exportar todo", además
+   de bajar el archivo se guarda una copia para que "admin" la pueda
+   revisar y volver a bajar después desde la pestaña "Respaldos".
+
+   Con FIREBASE_ENABLED, esa copia se guarda en Firebase (compartida: admin
+   la ve sin importar desde qué dispositivo se haya exportado). Sin
+   Firebase configurado, se guarda en el localStorage de este navegador
+   nomás — el mismo comportamiento de siempre. Se guardan hasta
+   BACKUP_HISTORY_MAX copias — al superarlo se descarta la más vieja. */
+const BACKUP_HISTORY_KEY = 'pvpx_backup_history';
+const BACKUP_HISTORY_MAX = 30;
+
+// Cache en memoria de los respaldos de Firebase, mantenida al día por el
+// listener de initFirebaseBackupsListener(); null = todavía no llegó el
+// primer snapshot (Firebase tarda un toque en responder la primera vez).
+let firebaseBackupsCache = null;
+let backupsListenerAttached = false;
+
+function initFirebaseBackupsListener() {
+  if (!FIREBASE_ENABLED || backupsListenerAttached) return;
+  const db = getFirebaseDb();
+  if (!db) return;
+  backupsListenerAttached = true;
+  db.ref('backups').on('value', (snap) => {
+    const val = snap.val() || {};
+    firebaseBackupsCache = Object.keys(val)
+      .map(id => Object.assign({ id }, val[id]))
+      .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    // Si justo se está mirando la pestaña Respaldos, refrescarla en vivo
+    // (por ejemplo, cuando otro dispositivo acaba de exportar).
+    if (state.mode === 'backups') renderPanel();
+  }, (err) => {
+    console.error('No se pudo leer el historial de respaldos de Firebase:', err);
+  });
+}
+
+function loadBackupHistory() {
+  if (FIREBASE_ENABLED) return firebaseBackupsCache || [];
+  try {
+    const raw = localStorage.getItem(BACKUP_HISTORY_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (err) { return []; }
+}
+function saveBackupSnapshot(content) {
+  const entry = {
+    ts: Date.now(),
+    user: currentAuthUser() || '—',
+    guildName: state.guildName || 'PVPX',
+    content,
+  };
+  if (FIREBASE_ENABLED) {
+    const db = getFirebaseDb();
+    if (!db) return;
+    db.ref('backups').push(entry).catch(err => {
+      console.error('No se pudo guardar el respaldo en Firebase:', err);
+    });
+    // Poda las copias más viejas por encima de BACKUP_HISTORY_MAX — best
+    // effort, no bloquea ni condiciona el guardado de arriba.
+    db.ref('backups').once('value').then(snap => {
+      const val = snap.val() || {};
+      const ids = Object.keys(val).sort((a, b) => (val[a].ts || 0) - (val[b].ts || 0));
+      while (ids.length > BACKUP_HISTORY_MAX) db.ref('backups/' + ids.shift()).remove();
+    }).catch(() => {});
+    return;
+  }
+  try {
+    const list = loadBackupHistory();
+    list.unshift(Object.assign({ id: uid() }, entry));
+    while (list.length > BACKUP_HISTORY_MAX) list.pop();
+    localStorage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(list));
+  } catch (err) { /* localStorage lleno o no disponible — no rompe el export en sí */ }
+}
+function deleteBackupSnapshot(id) {
+  if (FIREBASE_ENABLED) {
+    const db = getFirebaseDb();
+    if (db) db.ref('backups/' + id).remove().catch(err => console.error('No se pudo borrar el respaldo:', err));
+    return;
+  }
+  try {
+    const list = loadBackupHistory().filter(b => b.id !== id);
+    localStorage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(list));
+  } catch (err) {}
+}
+function clearBackupHistory() {
+  if (FIREBASE_ENABLED) {
+    const db = getFirebaseDb();
+    if (db) db.ref('backups').remove().catch(err => console.error('No se pudo vaciar el historial:', err));
+    return;
+  }
+  try { localStorage.removeItem(BACKUP_HISTORY_KEY); } catch (err) {}
+}
+
+/* ---------------- Render: pestaña "Respaldos" (solo la ve admin) ----------------
+   Lista cada copia de "⬇ Exportar todo" hecha con sesión iniciada EN ESTE
+   NAVEGADOR, la más reciente primero, con hora/fecha, quién la generó y su
+   tamaño — con botón para bajarla de nuevo o quitarla del historial. */
+function buildBackupsPanel() {
+  const wrap = document.createElement('div');
+  wrap.className = 'backups-panel';
+
+  if (!isAdminUser()) {
+    wrap.innerHTML = '<div class="empty-msg">🔒 Esta pestaña es solo para el usuario admin.</div>';
+    return wrap;
+  }
+  if (FIREBASE_ENABLED) initFirebaseBackupsListener();
+
+  const note = document.createElement('div');
+  note.className = 'guide-note';
+  note.style.marginBottom = '18px';
+  note.innerHTML = FIREBASE_ENABLED
+    ? 'Cada vez que alguien exporta con "⬇ Exportar todo" estando logueado (pvpx o admin), acá queda una copia — pensado para cuando se está iterando la página seguido y conviene tener respaldos a mano. <b>Se comparte entre todos los dispositivos</b> gracias a la base de datos en la nube: no importa desde qué celular o PC se haya exportado, admin las ve todas acá.'
+    : 'Cada vez que alguien exporta con "⬇ Exportar todo" estando logueado (pvpx o admin), acá queda una copia — pensado para cuando se está iterando la página seguido y conviene tener respaldos a mano. <b>Es local a este navegador</b>: si alguien exporta desde su propio celular o PC, esa copia se guarda EN ESE dispositivo, no aparece acá.';
+  wrap.appendChild(note);
+
+  const list = loadBackupHistory();
+
+  const headRow = document.createElement('div');
+  headRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;';
+  const countEl = document.createElement('div');
+  const fbUnreachable = FIREBASE_ENABLED && !getFirebaseDb();
+  const loading = FIREBASE_ENABLED && !fbUnreachable && firebaseBackupsCache === null;
+  countEl.style.cssText = 'font-size:13px;color:var(--grey-dim);';
+  countEl.textContent = fbUnreachable
+    ? '⚠️ Sin conexión con la base de datos'
+    : loading
+    ? 'Cargando historial…'
+    : `${list.length} respaldo${list.length === 1 ? '' : 's'} guardado${list.length === 1 ? '' : 's'}${FIREBASE_ENABLED ? '' : ' en este navegador'}`;
+  headRow.appendChild(countEl);
+  if (list.length) {
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'small ghost';
+    clearBtn.textContent = '🗑 Vaciar historial';
+    clearBtn.onclick = () => {
+      const msg = FIREBASE_ENABLED
+        ? '¿Borrar TODO el historial de respaldos compartido del gremio? Los archivos que ya se bajaron a algún PC/celular no se ven afectados.'
+        : '¿Borrar TODO el historial de respaldos guardado en este navegador? Los archivos que ya bajaste a tu PC/celular no se ven afectados.';
+      if (!confirm(msg)) return;
+      clearBackupHistory();
+      renderPanel();
+      showToast('Historial de respaldos vaciado ✔');
+    };
+    headRow.appendChild(clearBtn);
+  }
+  wrap.appendChild(headRow);
+
+  if (fbUnreachable) {
+    const errMsg = document.createElement('div');
+    errMsg.className = 'empty-msg';
+    errMsg.textContent = 'No se pudo conectar con la base de datos en vivo ahora mismo — revisá tu conexión y volvé a intentar en un rato. Mientras tanto no se puede ver el historial compartido de respaldos.';
+    wrap.appendChild(errMsg);
+    return wrap;
+  }
+  if (loading) {
+    const loadingMsg = document.createElement('div');
+    loadingMsg.className = 'empty-msg';
+    loadingMsg.textContent = 'Conectando con la base de datos en vivo…';
+    wrap.appendChild(loadingMsg);
+    return wrap;
+  }
+
+  if (!list.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-msg';
+    empty.textContent = FIREBASE_ENABLED
+      ? 'Todavía no hay respaldos guardados — van a ir apareciendo acá cada vez que pvpx o admin usen "⬇ Exportar todo", desde cualquier dispositivo.'
+      : 'Todavía no hay respaldos guardados — van a ir apareciendo acá cada vez que pvpx o admin usen "⬇ Exportar todo" en este navegador.';
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  const table = document.createElement('div');
+  table.className = 'backup-list';
+  list.forEach(b => {
+    const row = document.createElement('div');
+    row.className = 'backup-row';
+    const d = new Date(b.ts);
+    const fecha = d.toLocaleDateString('es-ES') + ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const sizeKb = (new Blob([b.content]).size / 1024).toFixed(1);
+    const userLabel = AUTH_USERS[b.user] ? AUTH_USERS[b.user].label : b.user;
+    row.innerHTML = `
+      <div class="backup-row-main">
+        <div class="backup-row-date">🕒 ${fecha}</div>
+        <div class="backup-row-meta">👤 ${userLabel} · 🏰 ${b.guildName} · ${sizeKb} KB</div>
+      </div>
+      <div class="backup-row-actions">
+        <button type="button" class="small ghost backupDlBtn">⬇ Descargar</button>
+        <button type="button" class="small ghost backupDelBtn" title="Quitar del historial">🗑</button>
+      </div>
+    `;
+    row.querySelector('.backupDlBtn').onclick = () => {
+      const fechaArchivo = d.toISOString().slice(0, 10);
+      const guildSafe = (b.guildName || 'gremio').replace(/[^a-z0-9áéíóúñ_-]+/gi, '_');
+      downloadFile(`pvpx_respaldo_${guildSafe}_${fechaArchivo}.json`, b.content, 'application/json');
+    };
+    row.querySelector('.backupDelBtn').onclick = () => {
+      if (!confirm('¿Quitar este respaldo del historial? (no afecta al archivo si ya lo bajaste)')) return;
+      deleteBackupSnapshot(b.id);
+      renderPanel();
+    };
+    table.appendChild(row);
+  });
+  wrap.appendChild(table);
+
+  return wrap;
 }
 
 function textReport() {
@@ -14466,10 +14900,10 @@ function invitationTextBlock(title, when, notes, roster) {
    descargar, copiar texto) sigue funcionando exactamente igual que antes.
 ---------------------------------------------------------------------------- */
 const FIREBASE_CONFIG = {
-  apiKey: '',
-  authDomain: '',
-  databaseURL: '',
-  projectId: '',
+  apiKey: 'AIzaSyB1zMzkFT5BHGVwdu5iI3-x0RlJ8MewPVA',
+  authDomain: 'pvpx-a04a0.firebaseapp.com',
+  databaseURL: 'https://pvpx-a04a0-default-rtdb.firebaseio.com',
+  projectId: 'pvpx-a04a0',
 };
 const FIREBASE_ENABLED = !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL);
 
@@ -14486,6 +14920,149 @@ function getFirebaseDb() {
     console.error('No se pudo inicializar Firebase:', err);
     return null;
   }
+}
+
+/* ---------------- Sincronización en vivo del estado del gremio (opcional) ---
+   Reutiliza el mismo FIREBASE_CONFIG/getFirebaseDb de arriba (pensado en un
+   principio solo para publicar invitaciones en Discord) para sincronizar en
+   vivo TODO el estado compartido del gremio entre todos los dispositivos
+   que tengan esta página abierta: ya no haría falta exportar/importar un
+   .json a mano para que todos vean lo mismo — cada cambio de alguien con
+   sesión iniciada se ve reflejado en las demás pantallas casi al instante.
+
+   Qué se sincroniza (y por qué eso, no más):
+   - guildName, doctrina ZVZ (zvzVariant), composiciones (comps), balance
+     de plata (balances), overrides de equipo en Solitario (soloOverrides)
+     y "Mis builds" (customBuilds) — todo dato que el gremio arma en
+     conjunto y tiene sentido que todos vean igual.
+   NO se sincroniza (queda 100% local a cada dispositivo, a propósito):
+   - en qué pestaña estás parado (mode/lastCompMode/lastSoloMode/
+     lastAvalonMode) — si no, con que alguien cambie de pestaña en su
+     celular le saltaría la pantalla a todos los demás;
+   - las habilidades elegidas por arma (ABILITY_PICK_KEY) — es elección
+     personal de cada uno, ver el comentario ahí arriba;
+   - la sesión iniciada (AUTH_KEY) — cada dispositivo inicia sesión aparte.
+
+   Si FIREBASE_CONFIG no está completo (FIREBASE_ENABLED=false, el caso por
+   defecto), toda esta sección queda inactiva sin tocar nada más: la
+   herramienta sigue funcionando exactamente igual que siempre, 100% local
+   a este navegador, con Exportar/Importar como única forma de pasar datos
+   entre dispositivos — igual que antes de que existiera esta sección. */
+const SYNC_FIELDS = ['guildName', 'zvzVariant', 'comps', 'balances', 'soloOverrides', 'customBuilds'];
+let suppressSyncPush = false;
+let syncPushTimer = null;
+let lastPushedSyncJSON = null;
+let syncListenerAttached = false;
+
+function buildSyncPayload() {
+  const payload = {};
+  SYNC_FIELDS.forEach(k => { payload[k] = state[k]; });
+  return payload;
+}
+
+/* Aplica un snapshot recibido de Firebase — a diferencia de applyState()
+   (pensada para IMPORTAR un archivo a mano, donde customBuilds se suma
+   para no perder lo propio), acá Firebase es la fuente de verdad del
+   gremio: se reemplaza cada campo tal cual llega, borrados incluidos, para
+   que este dispositivo quede en espejo exacto de lo que hay en la nube. */
+function applyRemoteState(data) {
+  if (!data || typeof data !== 'object') return;
+  suppressSyncPush = true;
+  try {
+    if (typeof data.guildName === 'string' && data.guildName.trim()) state.guildName = data.guildName;
+    if (data.zvzVariant && ZVZ_VARIANTS[data.zvzVariant]) state.zvzVariant = data.zvzVariant;
+    if (data.comps && typeof data.comps === 'object') {
+      COMPOSABLE_MODES.forEach(m => {
+        if (data.comps[m] && Array.isArray(data.comps[m].list)) state.comps[m] = data.comps[m];
+      });
+    }
+    if (Array.isArray(data.balances)) state.balances = data.balances;
+    if (data.soloOverrides && typeof data.soloOverrides === 'object') state.soloOverrides = data.soloOverrides;
+    if (Array.isArray(data.customBuilds)) state.customBuilds = data.customBuilds;
+    updateGuildBranding();
+    renderAll();
+  } finally {
+    // El renderAll() de arriba ya disparó saveToStorage() → scheduleSyncPush(),
+    // pero quedó frenado por suppressSyncPush; acá se marca este payload
+    // como "ya sincronizado" para no reenviarlo de eco en cuanto se libere.
+    lastPushedSyncJSON = JSON.stringify(buildSyncPayload());
+    suppressSyncPush = false;
+  }
+}
+
+function pushSyncStateNow() {
+  const db = getFirebaseDb();
+  if (!db) return;
+  const payload = buildSyncPayload();
+  const json = JSON.stringify(payload);
+  if (json === lastPushedSyncJSON) return; // sin cambios reales desde el último envío
+  lastPushedSyncJSON = json;
+  db.ref('guildState').set(payload).catch(err => {
+    console.error('No se pudo sincronizar con Firebase:', err);
+  });
+}
+
+function scheduleSyncPush() {
+  if (!FIREBASE_ENABLED || suppressSyncPush) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(pushSyncStateNow, 500);
+}
+
+/* Se conecta una sola vez, llamado desde DOMContentLoaded. El primer
+   snapshot decide el arranque: si Firebase ya tenía datos del gremio
+   (caso normal), este dispositivo los adopta; si Firebase está vacío
+   (recién configurado), este dispositivo sube lo que ya tenía como punto
+   de partida. De ahí en más, cualquier cambio que llegue de OTRO
+   dispositivo se aplica en vivo sin recargar la página. */
+function initFirebaseSync() {
+  if (!FIREBASE_ENABLED || syncListenerAttached) return;
+  const db = getFirebaseDb();
+  if (!db) return;
+  syncListenerAttached = true;
+  let first = true;
+  db.ref('guildState').on('value', (snap) => {
+    const data = snap.val();
+    if (first) {
+      first = false;
+      if (data) applyRemoteState(data);
+      else pushSyncStateNow();
+      return;
+    }
+    applyRemoteState(data);
+  }, (err) => {
+    console.error('Sincronización con Firebase interrumpida:', err);
+  });
+}
+
+/* Chiquito indicador en el header ("🔄 En vivo") — solo aparece si
+   FIREBASE_ENABLED, para que el gremio sepa si está viendo datos
+   compartidos en vivo o la versión 100% local de siempre. Usa el path
+   especial .info/connected de Realtime Database, que Firebase actualiza
+   solo con el estado real de la conexión de este dispositivo. */
+function initSyncBadge() {
+  const badge = document.getElementById('syncBadge');
+  if (!badge) return;
+  if (!FIREBASE_ENABLED) { badge.hidden = true; return; }
+  badge.hidden = false;
+  const db = getFirebaseDb();
+  if (!db) {
+    // FIREBASE_CONFIG está completo pero no se pudo inicializar (el script
+    // de Firebase no cargó — CDN bloqueado, sin internet, etc.). Se avisa
+    // en vez de esconder el indicador en silencio: la herramienta sigue
+    // funcionando en modo local mientras tanto.
+    badge.textContent = '⚠️ Sin conexión';
+    badge.title = 'No se pudo conectar con la base de datos en vivo — la herramienta sigue funcionando en modo local mientras tanto.';
+    badge.classList.add('offline');
+    return;
+  }
+  db.ref('.info/connected').on('value', (snap) => {
+    const connected = snap.val() === true;
+    badge.textContent = connected ? '🔄 En vivo' : '⏳ Conectando...';
+    badge.title = connected
+      ? 'Sincronizado en vivo con el resto del gremio (Firebase)'
+      : 'Sin conexión con la base de datos en vivo — mostrando la última versión conocida';
+    badge.classList.toggle('offline', !connected);
+  });
 }
 
 function genEventId() {
@@ -15205,6 +15782,78 @@ function openGuideModal(title, html) {
   document.getElementById('modalOverlay').classList.add('show');
 }
 
+/* Modal de inicio de sesión — usuario/contraseña simples, reutiliza el
+   mismo modal genérico que la Guía/el picker de equipo. Deja bien claro
+   que esto es solo una traba de interfaz (ver comentario en AUTH_USERS),
+   no un sistema de seguridad real. */
+function openLoginModal() {
+  document.getElementById('modalTitle').textContent = 'Iniciar sesión';
+  document.getElementById('modalText').style.display = 'none';
+  const guide = document.getElementById('modalGuide');
+  guide.style.display = '';
+  guide.innerHTML = '';
+  document.getElementById('modalFoot').style.display = 'none';
+  document.getElementById('modalBox').classList.remove('wide');
+
+  const form = document.createElement('form');
+  form.className = 'invite-form';
+
+  const userLabel = document.createElement('label');
+  userLabel.className = 'invite-label';
+  userLabel.innerHTML = '<span>Usuario</span>';
+  const userInput = document.createElement('input');
+  userInput.type = 'text';
+  userInput.autocomplete = 'username';
+  userInput.placeholder = 'pvpx';
+  userLabel.appendChild(userInput);
+  form.appendChild(userLabel);
+
+  const passLabel = document.createElement('label');
+  passLabel.className = 'invite-label';
+  passLabel.innerHTML = '<span>Contraseña</span>';
+  const passInput = document.createElement('input');
+  passInput.type = 'password';
+  passInput.autocomplete = 'current-password';
+  passLabel.appendChild(passInput);
+  form.appendChild(passLabel);
+
+  const errorEl = document.createElement('div');
+  errorEl.style.cssText = 'color:var(--red-bright);font-size:12.5px;min-height:16px;';
+  form.appendChild(errorEl);
+
+  const submitBtn = document.createElement('button');
+  submitBtn.type = 'submit';
+  submitBtn.className = 'primary';
+  submitBtn.textContent = 'Ingresar';
+  submitBtn.style.marginTop = '4px';
+  form.appendChild(submitBtn);
+
+  const note = document.createElement('p');
+  note.className = 'live-sync-hint';
+  note.style.marginTop = '16px';
+  note.textContent = 'Esto es solo para evitar que el resto del gremio edite la comp sin querer — no es una contraseña de verdad, cualquiera con conocimientos técnicos podría saltarla.';
+  form.appendChild(note);
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ok = doLogin(userInput.value, passInput.value);
+    if (!ok) {
+      errorEl.textContent = 'Usuario o contraseña incorrectos.';
+      passInput.value = '';
+      passInput.focus();
+      return;
+    }
+    document.getElementById('modalOverlay').classList.remove('show');
+    const label = AUTH_USERS[currentAuthUser()].label;
+    showToast(`Sesión iniciada como ${label} ✔`);
+    renderAll();
+  });
+
+  guide.appendChild(form);
+  document.getElementById('modalOverlay').classList.add('show');
+  setTimeout(() => userInput.focus(), 60);
+}
+
 function pickerIcon(name, suffix) {
   const box = document.createElement('span');
   box.className = 'gear-picker-icon';
@@ -15226,6 +15875,7 @@ function pickerIcon(name, suffix) {
    defecto. `onSelect` recibe la clave elegida del catálogo, 'NONE' (solo si
    allowNone) o null para volver al valor por defecto de la build. */
 function openGearPicker(pieceLabel, catalog, currentKey, allowNone, onSelect, showReset) {
+  if (!requireEditor('editar el equipo')) return;
   document.getElementById('modalTitle').textContent = `Elegir ${pieceLabel}`;
   document.getElementById('modalText').style.display = 'none';
   const guide = document.getElementById('modalGuide');
@@ -15383,6 +16033,23 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!state.customBuilds.length) state.customBuilds.push(newCustomBuild('Mi build 1'));
 
   updateGuildBranding();
+  // Si FIREBASE_CONFIG está completo, arranca la sincronización en vivo del
+  // estado del gremio y el indicador "🔄 En vivo" del header — si no, no
+  // hacen nada y la página sigue siendo 100% local, como siempre.
+  initFirebaseSync();
+  initSyncBadge();
+
+  updateAuthUI();
+  document.getElementById('btnAuth').onclick = () => {
+    if (isEditor()) {
+      doLogout();
+      updateAuthUI();
+      showToast('Sesión cerrada — quedaste en modo solo lectura');
+      renderAll();
+    } else {
+      openLoginModal();
+    }
+  };
 
   document.getElementById('btnTheme').onclick = () => {
     theme = theme === 'dark' ? 'light' : 'dark';
@@ -15402,15 +16069,24 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   document.getElementById('btnExport').onclick = () => {
     const guild = (state.guildName || 'gremio').replace(/[^a-z0-9áéíóúñ_-]+/gi, '_');
-    downloadFile(`albion_composicion_${guild}.json`, serializeState(), 'application/json');
-    showToast('Archivo exportado ✔');
+    const fecha = new Date().toISOString().slice(0, 10);
+    const content = serializeState();
+    downloadFile(`pvpx_respaldo_${guild}_${fecha}.json`, content, 'application/json');
+    // Con sesión iniciada, además de bajar el archivo se guarda una copia
+    // en el historial local de "Respaldos" (solo admin lo ve) — sin
+    // sesión, exportar sigue funcionando igual (es una acción de lectura,
+    // no de edición) pero no queda copia en ese historial.
+    if (isEditor()) saveBackupSnapshot(content);
+    showToast('Respaldo completo exportado ✔');
   };
   document.getElementById('btnImportTrigger').onclick = () => {
+    if (!requireEditor('importar un respaldo')) return;
     document.getElementById('btnImport').click();
   };
   document.getElementById('btnImport').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!requireEditor('importar un respaldo')) { e.target.value = ''; return; }
     const reader = new FileReader();
     reader.onload = () => {
       try {
@@ -15418,7 +16094,7 @@ document.addEventListener('DOMContentLoaded', () => {
         applyState(data);
         updateGuildBranding();
         renderAll();
-        showToast('Composición importada ✔');
+        showToast('Respaldo importado ✔ — todo tu progreso quedó cargado');
       } catch (err) {
         showToast('Error al leer el archivo ✕');
       }
@@ -15427,7 +16103,42 @@ document.addEventListener('DOMContentLoaded', () => {
     e.target.value = '';
   });
 
+  /* ---------------- Menú de acciones en celular (hamburguesa) ----------------
+     En desktop el .toolbar se ve entero en el header. En celular no entra
+     (quedaba en 2-3 filas de botones apretados) — se colapsa detrás de un
+     botón ☰ que despliega los mismos botones como un menú prolijo, con un
+     fondo oscuro atrás que cierra el menú al tocarlo afuera. Fuera del
+     breakpoint mobile el CSS ignora estas clases por completo. */
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const mobileToolbar = document.getElementById('toolbar');
+  const mobileBackdrop = document.getElementById('mobileMenuBackdrop');
+  if (mobileMenuBtn && mobileToolbar && mobileBackdrop) {
+    const closeMobileMenu = () => {
+      mobileToolbar.classList.remove('mobile-open');
+      mobileBackdrop.classList.remove('show');
+      mobileMenuBtn.setAttribute('aria-expanded', 'false');
+      mobileMenuBtn.textContent = '☰';
+    };
+    const openMobileMenu = () => {
+      mobileToolbar.classList.add('mobile-open');
+      mobileBackdrop.classList.add('show');
+      mobileMenuBtn.setAttribute('aria-expanded', 'true');
+      mobileMenuBtn.textContent = '✕';
+    };
+    mobileMenuBtn.onclick = () => {
+      if (mobileToolbar.classList.contains('mobile-open')) closeMobileMenu(); else openMobileMenu();
+    };
+    mobileBackdrop.onclick = closeMobileMenu;
+    // Tocar cualquier botón de acción adentro cierra el menú solo — si no,
+    // queda tapando la pantalla después de exportar/cambiar tema/etc.
+    mobileToolbar.addEventListener('click', (e) => {
+      if (e.target.closest('button')) closeMobileMenu();
+    });
+    window.addEventListener('resize', () => { if (window.innerWidth > 640) closeMobileMenu(); });
+  }
+
   document.getElementById('btnReset').onclick = () => {
+    if (!requireEditor('reiniciar')) return;
     if (state.mode === 'balance') { showToast('El balance no se reinicia desde acá — quitá jugadores uno por uno con el ✕'); return; }
     if (SOLO_MODES.includes(state.mode)) {
       if (!confirm('¿Restaurar el equipamiento por defecto de la build de esta pestaña? Se perderán el arma y las piezas que hayas cambiado a mano.')) return;
