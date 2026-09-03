@@ -33,19 +33,19 @@
     --shadow-a:rgba(0,0,0,.55);
   }
   [data-theme="light"]{
-    --bg:#f6f5f3;
-    --bg-alt:#ffffff;
-    --panel:#ffffff;
-    --panel-2:#f0eeeb;
-    --border:#e0ddd7;
+    --bg:#f3f1ee;
+    --bg-alt:#faf8f5;
+    --panel:#fbf9f6;
+    --panel-2:#efece7;
+    --border:#ddd8cf;
     --red:#c8102e;
     --red-bright:#e0122f;
     --red-dim:#f6d3d8;
     --white:#181614;
     --grey:#5a5650;
     --grey-dim:#8a857c;
-    --header-grad-1:#ffffff;
-    --header-grad-2:#f6f5f3;
+    --header-grad-1:#faf8f5;
+    --header-grad-2:#f3f1ee;
     --shadow-a:rgba(0,0,0,.10);
   }
   *{box-sizing:border-box;}
@@ -320,9 +320,13 @@
   .fill-bar{height:100%;background:linear-gradient(90deg,var(--red-dim),var(--red-bright));transition:.25s;}
   .quick-controls{display:flex;gap:6px;}
 
+  /* ---------- Roster: tarjeta grande vertical (Grupales / Estática) ----------
+     Es el layout por defecto. Para ZVZ (grupos de hasta 20) se sobreescribe
+     más abajo con .grid-row a una fila horizontal angosta, para que entren
+     muchos más jugadores de un vistazo sin scrollear tanto. */
   .grid{
     display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+    grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));
     gap:14px;
   }
   .slot-card{
@@ -339,38 +343,32 @@
     box-shadow:0 2px 10px rgba(0,0,0,.18);
   }
   .slot-card:hover{border-color:var(--accent);box-shadow:0 6px 20px -3px color-mix(in srgb, var(--accent) 60%, transparent);}
-  .slot-card:hover{border-top-color:var(--accent);}
-  /* Marca de agua del ícono de rol — detalle de diseño extra por tarjeta */
   .slot-card::after{
     content:attr(data-role-icon);
-    position:absolute;right:-10px;bottom:-20px;
-    font-size:76px;line-height:1;
-    opacity:.07;
-    pointer-events:none;
-    filter:grayscale(.4);
+    position:absolute;top:-16px;right:-8px;
+    font-size:76px;line-height:1;opacity:.07;
+    pointer-events:none;transform:rotate(8deg);
   }
 
-  /* Cinta de rol — pieza clave para "resaltar" cada tarjeta con el color de su rol */
+  /* Cinta de rol — ícono + label */
   .role-badge{
     display:inline-flex;align-items:center;gap:6px;
     background:var(--accent);
     color:#050505;
     font-weight:800;
     font-size:12.5px;
-    letter-spacing:.3px;
-    padding:4px 11px 4px 9px;
-    border-radius:20px;
-    margin:0 0 11px 0;
-    box-shadow:0 1px 4px rgba(0,0,0,.35);
+    letter-spacing:.2px;
+    padding:5px 13px 5px 10px;
+    border-radius:18px;
     font-family:'Rajdhani',sans-serif;
-    position:relative;
-    z-index:1;
+    margin-bottom:11px;
+    position:relative;z-index:1;
   }
 
-  /* Muñeco de equipo (paperdoll): imita la disposición de Albion al equipar
-     al personaje — arma / casco / capa arriba, pecho / off-hand en medio,
-     botas abajo. Cada casilla trae ícono grande + nombre del ítem en
-     español debajo, para que se lea de un vistazo qué lleva puesto. */
+  /* Muñeco de equipo (paperdoll). Por defecto (Solitario / Biblioteca / Mis
+     builds) sigue siendo la disposición en cruz de 3x3, grande, con nombre
+     debajo de cada pieza. Dentro de una fila de roster (.slot-card) se
+     override más abajo a una tira horizontal chica de solo íconos. */
   .paperdoll{
     display:grid;
     grid-template-columns:repeat(3,1fr);
@@ -425,24 +423,24 @@
   .food-slot{grid-column:3;grid-row:3;}
 
   .role-select, .weapon-select{
-    width:100%;
     background:var(--panel);
     border:1px solid var(--border);
     color:var(--white);
-    padding:6px 7px;
-    border-radius:6px;
+    padding:8px 10px;
+    border-radius:7px;
     font-family:'Rajdhani',sans-serif;
     font-size:13.5px;
     font-weight:600;
     outline:none;
-    position:relative;
-    z-index:1;
+    width:100%;
   }
   .role-select{color:var(--red-bright);text-overflow:ellipsis;font-weight:700;}
   .role-select:focus, .weapon-select:focus, .player-input:focus{border-color:var(--accent);}
-  .slot-card .selects{display:flex;flex-direction:column;gap:6px;min-width:0;position:relative;z-index:1;}
+  .selects{
+    display:flex;flex-direction:column;gap:8px;
+    position:relative;z-index:1;
+  }
   .player-input{
-    margin-top:10px;
     width:100%;
     background:var(--panel);
     border:1px solid var(--border);
@@ -451,32 +449,107 @@
     border-radius:6px;
     font-size:14.5px;
     outline:none;
-    position:relative;
-    z-index:1;
   }
   .player-input::placeholder{color:var(--grey-dim);}
+  .slot-card .player-input{margin-top:10px;}
   .remove-slot{
-    position:absolute;top:6px;right:6px;z-index:2;
-    width:20px;height:20px;border-radius:50%;
+    position:absolute;top:10px;right:10px;z-index:2;
+    width:26px;height:26px;border-radius:50%;
     background:transparent;border:1px solid var(--border);
-    color:var(--grey);font-size:12px;line-height:1;
+    color:var(--grey);font-size:13px;line-height:1;
     display:flex;align-items:center;justify-content:center;padding:0;
   }
   .remove-slot:hover{background:var(--red);border-color:var(--red);color:#fff;}
 
   .add-slot-card{
     border:1.5px dashed var(--border);
-    border-radius:10px;
+    border-radius:12px;
     display:flex;align-items:center;justify-content:center;
     color:var(--grey);
     font-weight:700;
     cursor:pointer;
     min-height:96px;
+    padding:8px;
     background:transparent;
-    font-size:13px;
+    font-size:14px;
   }
   .add-slot-card:hover{border-color:var(--red);color:var(--red-bright);}
   .add-slot-card:disabled{opacity:.3;cursor:not-allowed;}
+
+  /* ---------- Roster en FILA — solo ZVZ (grupos grandes, hasta 20) ----------
+     El JS marca la grilla con la clase extra .grid-row únicamente cuando
+     state.mode === 'zvz'; Grupales y Estática se quedan con la tarjeta
+     grande de arriba. Todo acá está scopeado a ".grid-row .slot-card" para
+     no tocar Solitario / Biblioteca / Mis builds, que comparten .paperdoll. */
+  .grid.grid-row{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  /* CSS Grid en vez de flex para la fila: así cada columna (rol, cada
+     pieza de equipo, arma seleccionada, nombre) tiene un ancho FIJO propio
+     y coincide exactamente de una fila a la siguiente, sin importar que
+     "Caller / IC" sea más largo que "Tanque" — con flex eso corría todo lo
+     de la derecha out of alignment. .paperdoll pasa a "display:contents"
+     para que sus 8 casillas sean columnas directas de esta grilla. */
+  .grid-row .slot-card{
+    background:var(--bg-alt);
+    background:linear-gradient(100deg, color-mix(in srgb, var(--accent) 14%, var(--bg-alt)) 0%, var(--bg-alt) 40%);
+    border-top:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:9px;
+    padding:8px 34px 8px 11px;
+    display:grid;
+    grid-template-columns:170px repeat(8, 58px) 150px 1fr;
+    align-items:center;
+    column-gap:8px;
+    row-gap:6px;
+    box-shadow:none;
+  }
+  .grid-row .slot-card:hover{box-shadow:0 3px 12px -3px color-mix(in srgb, var(--accent) 55%, transparent);}
+  .grid-row .slot-card::after{display:none;}
+  .grid-row .role-badge{
+    order:0;margin-bottom:0;white-space:nowrap;
+    padding:4px 10px 4px 8px;font-size:11.5px;gap:5px;
+    width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;
+  }
+  .grid-row .paperdoll{display:contents;}
+  .grid-row .doll-slot{width:58px;gap:0;}
+  .grid-row .doll-icon-box{border-radius:8px;border-width:1px;}
+  .grid-row .doll-icon-box .fallback{font-size:23px;}
+  .grid-row .doll-icon-box .tier-badge{font-size:7.5px;padding:0 3px;}
+  .grid-row .doll-label{display:none;}
+  .grid-row .weapon-slot{order:1;grid-column:auto;grid-row:auto;}
+  .grid-row .helm-slot{order:2;grid-column:auto;grid-row:auto;}
+  .grid-row .chest-slot{order:3;grid-column:auto;grid-row:auto;}
+  .grid-row .cape-slot{order:4;grid-column:auto;grid-row:auto;}
+  .grid-row .off-slot{order:5;grid-column:auto;grid-row:auto;}
+  .grid-row .boots-slot{order:6;grid-column:auto;grid-row:auto;}
+  .grid-row .food-slot{order:7;grid-column:auto;grid-row:auto;}
+  .grid-row .potion-slot{order:8;grid-column:auto;grid-row:auto;}
+  /* En ZVZ el weapon-select ya no existe (redundante con clickear el
+     ícono de arma del muñeco) — .selects queda con solo el role-select. */
+  .grid-row .selects{order:9;width:100%;}
+  .grid-row .selects .role-select{width:100%;}
+  .grid-row .slot-card .player-input{
+    order:10;margin-top:0;width:100%;
+    padding:6px 9px;font-size:13px;
+  }
+  .grid-row .remove-slot{
+    top:50%;right:8px;transform:translateY(-50%);
+    width:20px;height:20px;font-size:12px;
+  }
+
+  @media (max-width:980px){
+    .grid-row .slot-card{
+      display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+      padding:9px 34px 9px 10px;
+    }
+    .grid-row .paperdoll{display:flex;flex-wrap:wrap;gap:5px;}
+    .grid-row .role-badge{width:auto;flex:0 0 auto;overflow:visible;text-overflow:clip;}
+    .grid-row .selects{width:auto;flex:1 1 150px;min-width:130px;}
+    .grid-row .slot-card .player-input{width:auto;flex:1 1 150px;min-width:110px;}
+  }
 
   .empty-msg{color:var(--grey);font-size:13px;padding:20px;text-align:center;border:1px dashed var(--border);border-radius:10px;}
 
@@ -655,39 +728,6 @@
   }
   .my-build-tag-add:hover{border-color:var(--red-bright);color:var(--red-bright);}
   .my-build-add-btn{margin-top:2px;}
-
-  /* ---------- Pestaña "🏆 Gremio" (historial de batallas en vivo) ---------- */
-  .guild-search-row{display:flex;gap:8px;flex-wrap:wrap;}
-  .guild-search-row .lib-search{flex:1;min-width:220px;}
-  .guild-search-results{display:flex;flex-direction:column;gap:6px;}
-  .guild-result-item{
-    text-align:left;background:var(--panel);border:1px solid var(--border);color:var(--white);
-    border-radius:8px;padding:9px 13px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:13.5px;
-    transition:.14s;
-  }
-  .guild-result-item:hover{border-color:var(--red-bright);background:var(--panel-2);}
-  .guild-alliance{color:var(--grey-dim);font-size:11.5px;}
-  .guild-status{color:var(--grey);font-size:13px;padding:14px 2px;}
-  .guild-status.error{color:var(--red-bright);}
-  .guild-active-bar{
-    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
-    margin-bottom:14px;font-family:'Rajdhani',sans-serif;font-size:14px;color:var(--white);
-  }
-  .guild-range-row{gap:6px;}
-  .guild-battles-list{display:flex;flex-direction:column;gap:8px;}
-  .guild-battle-row{
-    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-    background:var(--bg-alt);border:1px solid var(--border);border-radius:10px;
-    padding:10px 14px;
-  }
-  .guild-battle-date{font-size:12px;color:var(--grey-dim);min-width:90px;font-family:'Rajdhani',sans-serif;}
-  .guild-battle-stats{display:flex;gap:12px;flex-wrap:wrap;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;}
-  .gb-kills{color:#3ecf6e;}
-  .gb-deaths{color:var(--red-bright);}
-  .gb-kd{color:var(--white);}
-  .gb-fame{color:#d4a017;}
-  .gb-players{color:var(--grey);font-weight:600;}
-  .guild-battle-opp{margin-left:auto;color:var(--grey-dim);font-size:12px;font-style:italic;}
 
   /* ---------- Pestaña de Balance de jugadores ---------- */
   .balance-panel .summary-strip{margin-bottom:20px;}
@@ -12473,7 +12513,6 @@ const TEMPLATES = {
 };
 
 const ZVZ_VARIANTS = {
-  estandar: { label: 'Estándar', icon: '⚖️', desc: 'Doctrina "ball" equilibrada: sanación pesada + daño mixto.' },
   kite: { label: 'Kite', icon: '🏃', desc: 'Meta ago-2026 (Radiant Wilds): movilidad y rango — Carving Sword sigue confirmado S-Tier; los arcos (incluido Wailing Bow) vienen de un parche de nerfeos, así que conviene confirmar su peso real contra el parche vigente. Cuidado con el sistema de Disarray si el kite abusa de monturas de batalla.' },
   brawl: { label: 'Brawl', icon: '🥊', desc: 'Meta ago-2026 (Radiant Wilds): combate cerrado y sostenido — el grupo se pega y satura con Carving Sword, Double Bladed Staff e Infernal Scythe (las tres siguen confirmadas S-Tier).' },
 };
@@ -12488,7 +12527,6 @@ const MODES = {
   avalon_dorado: { label: 'Dorado', icon: '🟡', desc: 'Cofre Dorado de los Caminos Avalonianos — jefe de mundo abierto, conviene grupo de gremio (7) para abrirlo rápido. Meta ago-2026 (Radiant Wilds), estimación propia en base a guías de la comunidad — no son datos oficiales.', max: 7 },
   balance: { label: 'Balance', icon: '💰', desc: 'Saldo de plata por jugador — sumá, restá y consultá el balance de cada miembro del gremio.', max: null },
   builds: { label: 'Builds', icon: '📚', desc: '"Mis builds": armá y guardá las builds propias del gremio, sin límite, con etiquetas para buscarlas. Más abajo, el catálogo de referencia con todas las builds de la herramienta — arma + set completo, filtrable por rol o tipo de arma y copiable para Discord (ese catálogo no es editable).', max: null },
-  gremio: { label: 'Gremio', icon: '🏆', desc: 'Historial de batallas reales de tu gremio, consultado en vivo contra el mismo backend que usa el killboard oficial del juego (no son datos de la herramienta).', max: null },
 };
 
 /* ---------------- Build en solitario (PvE / PvP) ----------------
@@ -12585,9 +12623,9 @@ const state = {
   lastSoloMode: 'solo_pve',
   /* Última sub-pestaña de Avalón usada (avalon_azul/avalon_dorado). */
   lastAvalonMode: 'avalon_azul',
-  zvzVariant: 'estandar',
+  zvzVariant: 'kite',
   comps: {
-    zvz: { active: 0, list: [{ id: uid(), name: 'Grupo 1', roster: buildSlotsFromTemplate(TEMPLATES.zvz.estandar) }] },
+    zvz: { active: 0, list: [{ id: uid(), name: 'Grupo 1', roster: buildSlotsFromTemplate(TEMPLATES.zvz.kite) }] },
     grupal: { active: 0, list: [{ id: uid(), name: 'Grupal 1', roster: buildSlotsFromTemplate(TEMPLATES.grupal) }] },
     estatica: { active: 0, list: [{ id: uid(), name: 'Estática 1', roster: buildSlotsFromTemplate(TEMPLATES.estatica) }] },
     avalon_azul: { active: 0, list: [{ id: uid(), name: 'Azul 1', roster: buildSlotsFromTemplate(TEMPLATES.avalon_azul) }] },
@@ -12608,12 +12646,6 @@ const state = {
      Exportar/Importar como con el resto del estado (ver applyState: al
      importar, estas se SUMAN a las que ya haya en vez de reemplazarlas). */
   customBuilds: [],
-  /* Gremio identificado para la pestaña "🏆 Gremio" (historial de batallas
-     reales, ver más abajo) — se guarda el id/nombre encontrado para no
-     tener que rebuscarlo cada vez que se abre la pestaña. Las batallas en
-     sí NO se guardan acá: se piden de nuevo cada vez (ver guildBattlesState,
-     una variable aparte, no persistida). */
-  guildLookup: { region: 'americas', id: '', name: '' },
 };
 
 /* ---------------- Balance de jugadores ---------------- */
@@ -12680,12 +12712,10 @@ const SECTIONS = {
   avalon: { label: 'Avalón', icon: '🔷', subModes: AVALON_MODES, lastKey: 'lastAvalonMode', fallback: 'avalon_azul' },
   balance: { label: 'Balance', icon: '💰' },
   builds: { label: 'Builds', icon: '📚' },
-  gremio: { label: 'Gremio', icon: '🏆' },
 };
 function currentSection() {
   if (state.mode === 'balance') return 'balance';
   if (state.mode === 'builds') return 'builds';
-  if (state.mode === 'gremio') return 'gremio';
   if (SOLO_MODES.includes(state.mode)) return 'solo';
   if (AVALON_MODES.includes(state.mode)) return 'avalon';
   return 'comp';
@@ -12705,7 +12735,7 @@ function renderModeBar() {
     item.innerHTML = `<span>${s.icon}</span><span>${s.label}</span>`;
     item.onclick = () => {
       if (currentSection() === key) return;
-      if (key === 'balance' || key === 'builds' || key === 'gremio') {
+      if (key === 'balance' || key === 'builds') {
         state.mode = key;
       } else {
         state.mode = state[s.lastKey] || s.fallback;
@@ -12804,11 +12834,6 @@ function renderPanel() {
     return;
   }
 
-  if (state.mode === 'gremio') {
-    panel.appendChild(buildGuildBattlesPanel());
-    return;
-  }
-
   if (SOLO_MODES.includes(state.mode)) {
     panel.appendChild(buildSoloPanel());
     return;
@@ -12845,7 +12870,7 @@ function renderPanel() {
   head.querySelector('#quickRemove').onclick = removeLastPlayerSlot;
 
   const grid = document.createElement('div');
-  grid.className = 'grid';
+  grid.className = 'grid' + (state.mode === 'zvz' ? ' grid-row' : '');
   roster.forEach((slot, idx) => grid.appendChild(buildSlotCard(slot, idx)));
 
   if (roster.length < max) {
@@ -13221,38 +13246,43 @@ function buildSlotCard(slot, idx) {
   // armar cualquier build sin restricciones. La opción de arriba de todo
   // vuelve al arma por defecto de la plantilla (equivalente a "Usar la de
   // la build" del selector visual en el muñeco).
-  const weaponSelect = document.createElement('select');
-  weaponSelect.className = 'weapon-select';
-  const defaultWeapon = def.weapons[slot.weaponIdx] || def.weapons[0];
-  const defaultOpt = document.createElement('option');
-  defaultOpt.value = '';
-  defaultOpt.textContent = `↺ Por defecto (${shortEsName(defaultWeapon.name)})`;
-  weaponSelect.appendChild(defaultOpt);
-  WEAPON_PICKER_GROUPS.forEach(group => {
-    const optgroup = document.createElement('optgroup');
-    optgroup.label = group.label;
-    Object.keys(group.entries).forEach(key => {
-      const [name] = group.entries[key];
-      const opt = document.createElement('option');
-      opt.value = key;
-      opt.textContent = name;
-      optgroup.appendChild(opt);
+  // En ZVZ (fila compacta) se omite: es 100% redundante con clickear el
+  // ícono de arma del muñeco, que ya abre el mismo catálogo completo — así
+  // se libera espacio en la fila para los 20 jugadores.
+  if (state.mode !== 'zvz') {
+    const weaponSelect = document.createElement('select');
+    weaponSelect.className = 'weapon-select';
+    const defaultWeapon = def.weapons[slot.weaponIdx] || def.weapons[0];
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = shortEsName(defaultWeapon.name);
+    weaponSelect.appendChild(defaultOpt);
+    WEAPON_PICKER_GROUPS.forEach(group => {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = group.label;
+      Object.keys(group.entries).forEach(key => {
+        const [name] = group.entries[key];
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = name;
+        optgroup.appendChild(opt);
+      });
+      weaponSelect.appendChild(optgroup);
     });
-    weaponSelect.appendChild(optgroup);
-  });
-  weaponSelect.value = slot.customWeapon ? weapon.name : '';
-  weaponSelect.onchange = () => {
-    const key = weaponSelect.value;
-    if (!key) {
-      slot.customWeapon = null;
-    } else {
-      const found = MASTER_WEAPONS.find(w => w.name === key);
-      if (found) slot.customWeapon = found;
-    }
-    slot.gear = {};
-    renderPanel();
-  };
-  selects.appendChild(weaponSelect);
+    weaponSelect.value = slot.customWeapon ? weapon.name : '';
+    weaponSelect.onchange = () => {
+      const key = weaponSelect.value;
+      if (!key) {
+        slot.customWeapon = null;
+      } else {
+        const found = MASTER_WEAPONS.find(w => w.name === key);
+        if (found) slot.customWeapon = found;
+      }
+      slot.gear = {};
+      renderPanel();
+    };
+    selects.appendChild(weaponSelect);
+  }
 
   card.appendChild(selects);
 
@@ -14013,288 +14043,6 @@ function buildBuildsLibraryPanel() {
   return wrap;
 }
 
-/* ---------------- Pestaña "🏆 Gremio" — historial real de batallas ----------
-   A diferencia de TODO lo demás en esta herramienta (que es data estática
-   del juego, guardada localmente), esto consulta EN VIVO el mismo backend
-   que usa el killboard oficial de Albion (gameinfo.albiononline.com y sus
-   variantes regionales) — no es un dato de esta herramienta ni de ningún
-   sitio de terceros/curado como Battle Hub: es la actividad real de TU
-   gremio.
-
-   OJO — esta API del juego NO permite que un navegador la consulte directo
-   (no manda los headers CORS necesarios; confirmado contra un cliente de
-   código abierto que documenta exactamente ese problema). Por eso el pedido
-   pasa por un proxy CORS público y gratuito (probamos un par en orden, por
-   si el primero está caído) que simplemente reenvía la respuesta agregando
-   el header que falta — no guarda ni ve nada del gremio más de lo que ya es
-   público en el killboard. Es la opción que se eligió a propósito para que
-   la búsqueda siga siendo en vivo desde adentro de la herramienta, sabiendo
-   que depende de un servicio de terceros que no controlamos: puede fallar
-   o dejar de funcionar sin aviso, en cuyo caso esta pestaña muestra un
-   error en vez de romper la página. */
-const GUILD_REGIONS = {
-  americas: { label: 'Américas', base: 'https://gameinfo.albiononline.com/api/gameinfo' },
-  europe: { label: 'Europa', base: 'https://gameinfo-ams.albiononline.com/api/gameinfo' },
-  asia: { label: 'Asia', base: 'https://gameinfo-sgp.albiononline.com/api/gameinfo' },
-};
-const GUILD_BATTLE_RANGES = { day: 'Hoy', week: 'Esta semana', month: 'Este mes' };
-
-/* Proxies CORS públicos y sin clave — se prueban en orden, el primero que
-   responda con JSON válido gana. Ver nota de arriba sobre por qué hace
-   falta uno. */
-const CORS_PROXIES = [
-  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-];
-
-async function fetchJsonViaProxies(targetUrl) {
-  let lastErr = new Error('sin proxies configurados');
-  for (const buildProxyUrl of CORS_PROXIES) {
-    try {
-      const res = await fetch(buildProxyUrl(targetUrl));
-      if (!res.ok) { lastErr = new Error('HTTP ' + res.status); continue; }
-      return await res.json();
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-  throw lastErr;
-}
-
-/* Estado de las batallas cargadas — a propósito NO vive en `state` (no se
-   persiste ni se exporta): son datos en vivo de terceros, se piden de nuevo
-   cada vez que hace falta en vez de guardarse como si fueran de la
-   herramienta. `range` sí se recuerda dentro de este objeto mientras la
-   página sigue abierta, para no resetear el filtro en cada click. */
-let guildBattlesState = { status: 'idle', battles: [], error: null, range: 'week' };
-
-async function searchGuildByName(region, name) {
-  const base = GUILD_REGIONS[region].base;
-  const data = await fetchJsonViaProxies(`${base}/search?q=${encodeURIComponent(name)}`);
-  return (data && data.guilds) || [];
-}
-
-async function fetchGuildBattles(region, guildId, range) {
-  const base = GUILD_REGIONS[region].base;
-  const url = `${base}/battles?guildId=${encodeURIComponent(guildId)}&range=${encodeURIComponent(range)}&limit=20&offset=0&sort=recent`;
-  const data = await fetchJsonViaProxies(url);
-  return Array.isArray(data) ? data : [];
-}
-
-/* Cada batalla trae un diccionario "players" (uno por jugador que participó,
-   de CUALQUIER gremio) — para saber cómo le fue a TU gremio en esa batalla
-   hay que sumar a mano los jugadores cuyo guildId coincide, y contar qué
-   otros gremios aparecieron más (para mostrar "vs. Fulano, Mengano"). */
-function summarizeBattleForGuild(battle, guildId) {
-  const players = battle.players || {};
-  let kills = 0, deaths = 0, fame = 0, ourCount = 0;
-  const otherGuilds = {};
-  Object.values(players).forEach(p => {
-    if (p.guildId === guildId) {
-      kills += p.kills || 0;
-      deaths += p.deaths || 0;
-      fame += p.killFame || 0;
-      ourCount++;
-    } else if (p.guildName) {
-      otherGuilds[p.guildName] = (otherGuilds[p.guildName] || 0) + 1;
-    }
-  });
-  const opponents = Object.entries(otherGuilds).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([n]) => n);
-  return {
-    id: battle.id, startTime: battle.startTime,
-    kills, deaths, fame, ourCount,
-    totalPlayers: Object.keys(players).length,
-    opponents,
-  };
-}
-
-function buildGuildBattlesPanel() {
-  const wrap = document.createElement('div');
-  wrap.className = 'guild-panel';
-
-  const note = document.createElement('div');
-  note.className = 'solo-note';
-  note.innerHTML = `Consulta en vivo el historial real de batallas de tu gremio, contra el mismo backend que usa el killboard oficial del juego — no son datos de esta herramienta ni de ningún sitio externo. Como ese servicio no deja que un navegador lo consulte directo, el pedido pasa por un proxy CORS público y gratuito (no guarda ni ve nada que no sea ya público en el killboard). Entre eso y que el servicio del juego a veces es poco estable, puede fallar de vez en cuando: si pasa, probá "Actualizar" de nuevo en un rato.`;
-  wrap.appendChild(note);
-
-  const lookupBar = document.createElement('div');
-  lookupBar.className = 'lib-filters';
-
-  const regionRow = document.createElement('div');
-  regionRow.className = 'lib-filter-row';
-  const regionLabel = document.createElement('span');
-  regionLabel.className = 'lib-filter-label';
-  regionLabel.textContent = 'Servidor:';
-  regionRow.appendChild(regionLabel);
-  Object.keys(GUILD_REGIONS).forEach(rk => {
-    const pill = document.createElement('button');
-    pill.type = 'button';
-    pill.className = 'lib-pill' + (state.guildLookup.region === rk ? ' active' : '');
-    pill.textContent = GUILD_REGIONS[rk].label;
-    pill.onclick = () => {
-      if (state.guildLookup.region === rk) return;
-      state.guildLookup = { region: rk, id: '', name: '' };
-      guildBattlesState = { status: 'idle', battles: [], error: null, range: guildBattlesState.range };
-      renderPanel();
-    };
-    regionRow.appendChild(pill);
-  });
-  lookupBar.appendChild(regionRow);
-
-  const searchRow = document.createElement('div');
-  searchRow.className = 'guild-search-row';
-  const nameInput = document.createElement('input');
-  nameInput.type = 'text';
-  nameInput.className = 'lib-search';
-  nameInput.placeholder = 'Nombre (exacto o parcial) de tu gremio…';
-  nameInput.autocomplete = 'off';
-  nameInput.value = state.guildLookup.name || '';
-  searchRow.appendChild(nameInput);
-  const searchBtn = document.createElement('button');
-  searchBtn.type = 'button';
-  searchBtn.className = 'ghost small';
-  searchBtn.textContent = '🔍 Buscar gremio';
-  searchRow.appendChild(searchBtn);
-  lookupBar.appendChild(searchRow);
-
-  const resultsBox = document.createElement('div');
-  resultsBox.className = 'guild-search-results';
-  lookupBar.appendChild(resultsBox);
-  wrap.appendChild(lookupBar);
-
-  const runSearch = async () => {
-    const q = nameInput.value.trim();
-    if (!q) { showToast('Escribí un nombre de gremio para buscar'); return; }
-    resultsBox.innerHTML = '<p class="guild-status">Buscando…</p>';
-    try {
-      const guilds = await searchGuildByName(state.guildLookup.region, q);
-      if (!guilds.length) {
-        resultsBox.innerHTML = '<p class="guild-status">No se encontró ningún gremio con ese nombre en este servidor.</p>';
-        return;
-      }
-      resultsBox.innerHTML = '';
-      guilds.slice(0, 8).forEach(g => {
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = 'guild-result-item';
-        item.innerHTML = `<b>${g.Name}</b>${g.AllianceName ? ` <span class="guild-alliance">[${g.AllianceName}]</span>` : ''}`;
-        item.onclick = () => {
-          state.guildLookup.id = g.Id;
-          state.guildLookup.name = g.Name;
-          guildBattlesState = { status: 'idle', battles: [], error: null, range: guildBattlesState.range };
-          renderPanel();
-        };
-        resultsBox.appendChild(item);
-      });
-    } catch (err) {
-      resultsBox.innerHTML = `<p class="guild-status error">No se pudo consultar el servicio del juego ahora mismo (${escapeHtmlAttr(err.message)}) — puede ser el servicio de Albion o el proxy CORS que se usa para poder pedirlo desde el navegador. Probá de nuevo en un momento.</p>`;
-    }
-  };
-  searchBtn.onclick = runSearch;
-  nameInput.onkeydown = (e) => { if (e.key === 'Enter') runSearch(); };
-
-  if (!state.guildLookup.id) {
-    const hint = document.createElement('p');
-    hint.className = 'guild-status';
-    hint.textContent = 'Buscá tu gremio arriba y elegilo de la lista para ver su historial de batallas.';
-    wrap.appendChild(hint);
-    return wrap;
-  }
-
-  const activeGuild = document.createElement('div');
-  activeGuild.className = 'guild-active-bar';
-  activeGuild.innerHTML = `<span>Gremio: <b>${state.guildLookup.name}</b></span>`;
-  wrap.appendChild(activeGuild);
-
-  const rangeRow = document.createElement('div');
-  rangeRow.className = 'lib-filter-row guild-range-row';
-  const rangeLabel = document.createElement('span');
-  rangeLabel.className = 'lib-filter-label';
-  rangeLabel.textContent = 'Rango:';
-  rangeRow.appendChild(rangeLabel);
-  Object.keys(GUILD_BATTLE_RANGES).forEach(rk => {
-    const pill = document.createElement('button');
-    pill.type = 'button';
-    pill.className = 'lib-pill' + (guildBattlesState.range === rk ? ' active' : '');
-    pill.textContent = GUILD_BATTLE_RANGES[rk];
-    pill.onclick = () => {
-      if (guildBattlesState.range === rk) return;
-      guildBattlesState = { status: 'idle', battles: [], error: null, range: rk };
-      renderPanel();
-    };
-    rangeRow.appendChild(pill);
-  });
-  const refreshBtn = document.createElement('button');
-  refreshBtn.type = 'button';
-  refreshBtn.className = 'ghost small';
-  refreshBtn.textContent = '🔄 Actualizar';
-  rangeRow.appendChild(refreshBtn);
-  activeGuild.appendChild(rangeRow);
-
-  const listBox = document.createElement('div');
-  listBox.className = 'guild-battles-list';
-  wrap.appendChild(listBox);
-
-  function renderBattles() {
-    if (guildBattlesState.status === 'loading') {
-      listBox.innerHTML = '<p class="guild-status">Cargando batallas…</p>';
-      return;
-    }
-    if (guildBattlesState.status === 'error') {
-      listBox.innerHTML = `<p class="guild-status error">No se pudo cargar el historial (${escapeHtmlAttr(guildBattlesState.error)}). Puede ser un problema temporal del servicio del juego o del proxy CORS — probá "🔄 Actualizar".</p>`;
-      return;
-    }
-    if (!guildBattlesState.battles.length) {
-      listBox.innerHTML = `<p class="guild-status">Sin batallas registradas en ese rango para este gremio.</p>`;
-      return;
-    }
-    listBox.innerHTML = '';
-    guildBattlesState.battles.forEach(b => {
-      const s = summarizeBattleForGuild(b, state.guildLookup.id);
-      const row = document.createElement('div');
-      row.className = 'guild-battle-row';
-      let dateStr = '—';
-      try { dateStr = new Date(s.startTime).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (err) { /* fecha inválida — se deja el placeholder */ }
-      const kd = s.deaths ? (s.kills / s.deaths).toFixed(1) : s.kills.toFixed(1);
-      row.innerHTML = `
-        <div class="guild-battle-date">${dateStr}</div>
-        <div class="guild-battle-stats">
-          <span class="gb-kills">⚔ ${s.kills}</span>
-          <span class="gb-deaths">💀 ${s.deaths}</span>
-          <span class="gb-kd">K/D ${kd}</span>
-          <span class="gb-fame">✨ ${Math.round(s.fame / 1000)}k fama</span>
-          <span class="gb-players">${s.ourCount} jugador${s.ourCount === 1 ? '' : 'es'} tuyos</span>
-        </div>
-        <div class="guild-battle-opp">${s.opponents.length ? 'vs. ' + s.opponents.join(', ') : '—'}</div>
-      `;
-      listBox.appendChild(row);
-    });
-  }
-
-  async function loadGuildBattles() {
-    if (guildBattlesState.status === 'loading') return;
-    guildBattlesState = { status: 'loading', battles: [], error: null, range: guildBattlesState.range };
-    renderBattles();
-    try {
-      const battles = await fetchGuildBattles(state.guildLookup.region, state.guildLookup.id, guildBattlesState.range);
-      guildBattlesState = { status: 'ready', battles, error: null, range: guildBattlesState.range };
-    } catch (err) {
-      guildBattlesState = { status: 'error', battles: [], error: err.message, range: guildBattlesState.range };
-    }
-    renderBattles();
-  }
-
-  refreshBtn.onclick = loadGuildBattles;
-
-  if (guildBattlesState.status === 'idle') {
-    loadGuildBattles();
-  } else {
-    renderBattles();
-  }
-
-  return wrap;
-}
-
 /* ---------------- Render: pestaña de Balance ---------------- */
 /* Paleta para los avatares de jugador — un color consistente por nombre
    (mismo criterio de tono medio que ROLE_ACCENT) para darle más identidad
@@ -14465,7 +14213,6 @@ function serializeState() {
     balances: state.balances,
     soloOverrides: state.soloOverrides,
     customBuilds: state.customBuilds,
-    guildLookup: state.guildLookup,
   }, null, 2);
 }
 
@@ -14478,7 +14225,7 @@ function applyState(data) {
   if (!data || typeof data !== 'object') return;
   state.guildName = data.guildName || state.guildName;
   state.mode = data.mode || state.mode;
-  state.zvzVariant = data.zvzVariant || state.zvzVariant;
+  state.zvzVariant = (data.zvzVariant && ZVZ_VARIANTS[data.zvzVariant]) ? data.zvzVariant : state.zvzVariant;
   if (data.comps && typeof data.comps === 'object') {
     COMPOSABLE_MODES.forEach(m => {
       const incoming = data.comps[m];
@@ -14522,9 +14269,6 @@ function applyState(data) {
         existingIds.add(cb.id);
       }
     });
-  }
-  if (data.guildLookup && typeof data.guildLookup === 'object') {
-    state.guildLookup = Object.assign({}, state.guildLookup, data.guildLookup);
   }
 }
 
