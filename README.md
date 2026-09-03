@@ -11,9 +11,6 @@ Herramienta para armar y compartir composiciones de gremio: ZVZ, contenido grupa
 - **Builds** — armá y guardá tus propias builds con etiquetas, más un catálogo de referencia con toda la data oficial del juego.
 - **Gremio** — historial real de batallas del gremio, consultado en vivo.
 
-## Uso
-
-Un solo archivo (`index.html`), sin backend ni instalación: abrilo en el navegador y listo. Todo se guarda localmente en tu navegador; usá **Exportar / Importar** para compartir tu configuración o tus builds con el resto del gremio.
 
 ## Notas
 
